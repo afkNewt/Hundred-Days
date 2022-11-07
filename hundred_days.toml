@@ -1,0 +1,41 @@
+currency = 100
+days = 100
+
+actions = ["pass"]
+
+[[resources]]
+name = "Wood"
+amount = 100
+industry = "Logging"
+actions = ["buy", "sell"]
+price = 2
+
+[[resources]]
+name = "Stone"
+amount = 100
+industry = "Mining"
+actions = ["buy", "sell"]
+price = 1
+
+[[resources]]
+name = "Gems"
+amount = 0
+industry = "Mining"
+actions = ["buy", "sell"]
+price = 64
+
+[[buildings]]
+name = "Mine"
+amount = 1
+industry = "Mining"
+actions = ["construct"]
+production = [["Stone", 1], ["Gems", 0.1]]
+cost = [["Wood", 20], ["Stone", 10]]
+
+[[buildings]]
+name = "Sawmill"
+amount = 1
+industry = "Logging"
+actions = ["construct"]
+production = [["Wood", 1]]
+cost = [["Wood", 10], ["Stone", 20]]

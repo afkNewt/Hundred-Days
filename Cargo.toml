@@ -1,0 +1,10 @@
+[package]
+name = "terminal_hundred_days"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0.147", features = ["derive"] }
+toml = "0.5.9"
+tui = "0.19.0"
+crossterm = "0.25.0"
