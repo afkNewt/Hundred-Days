@@ -85,7 +85,11 @@ impl Building {
     pub fn information(&self) -> String {
         return format!(
             "name: {}\namount: {}\nindustry: {:?}\n\nproduction: {}\n\ncost: {}",
-            self.name, self.amount, self.industry, Self::vec_to_string(self.production.clone()), Self::vec_to_string(self.cost.clone())
+            self.name,
+            self.amount,
+            self.industry,
+            Self::vec_to_string(self.production.clone()),
+            Self::vec_to_string(self.cost.clone())
         );
     }
 }
@@ -139,16 +143,17 @@ pub fn global_action(name: &str) -> fn(&mut Game) -> String {
             let mut output = "Passed the day:".to_string();
 
             for building in &game.buildings {
-                output = format!(
-                    "{output}\n\n{}:",
-                    building.name
-                );
-                for (index, (resource, amount)) in building.production.iter().enumerate() {
-                    game.resources[index].amount += amount;
-                    output = format!(
-                        "{output}\n{} ({}) {}",
-                        game.resources[index].amount, amount, resource
-                    );
+                output = format!("{output}\n\n{}:", building.name);
+                for (resource, amount) in building.production.iter() {
+                    let amount = amount * building.amount as f32;
+
+                    let res = game.resources.iter_mut().find(|r| r.name == *resource);
+                    let Some(res) = res else {
+                        continue;
+                    };
+
+                    res.amount += amount;
+                    output = format!("{output}\n{} ({}) {}", res.amount, amount, resource);
                 }
             }
 

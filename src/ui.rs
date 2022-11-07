@@ -30,7 +30,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
-        .title(format!(" In {} days", app.game_state.days))
+        .title(format!(" In {} days ", app.game_state.days))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
     f.render_widget(block, size);
