@@ -72,10 +72,20 @@ pub struct Building {
 }
 
 impl Building {
+    fn vec_to_string(vec: Vec<(String, f32)>) -> String {
+        let mut output = String::new();
+
+        for (name, amount) in vec {
+            output = format!("{output}\n{name}: {amount}");
+        }
+
+        return output;
+    }
+
     pub fn information(&self) -> String {
         return format!(
-            "name: {}\namount: {}\nindustry: {:?}\nproduction: {:?}\ncost: {:?}",
-            self.name, self.amount, self.industry, self.production, self.cost
+            "name: {}\namount: {}\nindustry: {:?}\n\nproduction: {}\n\ncost: {}",
+            self.name, self.amount, self.industry, Self::vec_to_string(self.production.clone()), Self::vec_to_string(self.cost.clone())
         );
     }
 }

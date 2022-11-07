@@ -204,7 +204,7 @@ where
                 DEFAULT_STYLE
             },
         )
-        .title(" Industries ")
+        .title(" Buildings ")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
 
