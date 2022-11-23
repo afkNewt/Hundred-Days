@@ -60,10 +60,11 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     draw_resources(f, app, first_column[1]);
     // First Column
 
+    let industry_len: u16 = app.game_state.industries.len().try_into().unwrap_or_default();
     // Second Column
     let second_column = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(6), Constraint::Percentage(100)].as_ref())
+        .constraints([Constraint::Length(industry_len + 2), Constraint::Percentage(100)].as_ref())
         .split(chunks[1]);
 
     draw_industries(f, app, second_column[0]);

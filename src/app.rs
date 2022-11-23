@@ -118,7 +118,7 @@ impl App {
             },
             info: String::new(),
             extra_info: String::new(),
-            industry: game.industries[0].clone(),
+            industry: game.industries.first().unwrap().to_string(),
             selected_tab: Tab::Resources,
             selection_mode: SelectionMode::Items,
             game_state: game,
