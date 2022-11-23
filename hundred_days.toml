@@ -1,41 +1,60 @@
 currency = 100
 days = 100
 
-actions = ["pass"]
+industries = [
+  "Logging",
+  "Mining",
+  "Farming",
+  "None",
+]
 
-[[resources]]
+global_actions = [
+  { Pass = {} },
+]
+
+[resources."Wood"]
 name = "Wood"
 amount = 100
-industry = "Logging"
-actions = ["buy", "sell"]
-price = 2
+industries = ["None", "Logging"]
+actions = [
+  { Buy = { buy_price = 2 } },
+  { Sell = { sell_price = 2 } },
+]
 
-[[resources]]
+
+[resources."Stone"]
 name = "Stone"
 amount = 100
-industry = "Mining"
-actions = ["buy", "sell"]
-price = 1
+industries = ["None", "Mining"]
+actions = [
+  { Buy = { buy_price = 1 } },
+  { Sell = { sell_price = 1 } },
+]
 
-[[resources]]
+[resources."Gems"]
 name = "Gems"
 amount = 0
-industry = "Mining"
-actions = ["buy", "sell"]
-price = 64
+industries = ["None", "Mining"]
+actions = [
+  { Buy = { buy_price = 64 } },
+  { Sell = { sell_price = 64 } },
+]
 
-[[buildings]]
+
+[buildings."Mine"]
 name = "Mine"
 amount = 1
-industry = "Mining"
-actions = ["construct"]
+industries = ["None", "Mining"]
 production = [["Stone", 1], ["Gems", 0.1]]
-cost = [["Wood", 20], ["Stone", 10]]
+actions = [
+  { Construct = { build_cost = [["Wood", 10], ["Stone", 20]] } },
+]
 
-[[buildings]]
+[buildings."Sawmill"]
 name = "Sawmill"
 amount = 1
-industry = "Logging"
-actions = ["construct"]
+industries = ["None", "Logging"]
 production = [["Wood", 1]]
-cost = [["Wood", 10], ["Stone", 20]]
+actions = [
+  { Construct = { build_cost = [["Wood", 20], ["Stone", 10]] } },
+]

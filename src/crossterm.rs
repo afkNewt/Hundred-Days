@@ -53,8 +53,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Left => {
                     if app.selection_mode == SelectionMode::Tabs {
                         match app.selected_tab {
-                            Tab::Actions => app.change_selected_tab(Tab::Buildings),
-                            Tab::Buildings | Tab::Industry => app.change_selected_tab(Tab::Resources),
+                            Tab::Actions => app.change_tab(Tab::Buildings),
+                            Tab::Buildings | Tab::Industry => app.change_tab(Tab::Resources),
                             _ => {}
                         }
                     }
@@ -62,8 +62,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Right => {
                     if app.selection_mode == SelectionMode::Tabs {
                         match app.selected_tab {
-                            Tab::Buildings | Tab::Industry => app.change_selected_tab(Tab::Actions),
-                            Tab::Resources => app.change_selected_tab(Tab::Buildings),
+                            Tab::Buildings | Tab::Industry => app.change_tab(Tab::Actions),
+                            Tab::Resources => app.change_tab(Tab::Buildings),
                             _ => {}
                         }
                     }
@@ -71,7 +71,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Up => {
                     if app.selection_mode == SelectionMode::Tabs {
                         match app.selected_tab {
-                            Tab::Buildings | Tab::Resources | Tab::Actions => app.change_selected_tab(Tab::Industry),
+                            Tab::Buildings | Tab::Resources | Tab::Actions => app.change_tab(Tab::Industry),
                             _ => {}
                         }
                     } else {
@@ -81,7 +81,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Down => {
                     if app.selection_mode == SelectionMode::Tabs {
                         match app.selected_tab {
-                            Tab::Industry | Tab::Actions | Tab::Resources => app.change_selected_tab(Tab::Buildings),
+                            Tab::Industry | Tab::Actions | Tab::Resources => app.change_tab(Tab::Buildings),
                             _ => {}
                         }
                     } else {
@@ -89,17 +89,17 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                 }
                 KeyCode::Char(' ') => {
-                    app.swap_selection_mode();
+                    app.alternate_selection_mode();
                 }
                 KeyCode::Enter => {
                     if app.selected_tab != Tab::Actions {
-                        app.change_selected_tab(Tab::Actions);
+                        app.change_tab(Tab::Actions);
 
                         if app.selection_mode == SelectionMode::Tabs {
-                            app.swap_selection_mode();
+                            app.alternate_selection_mode();
                         }
                     } else {
-                        app.call_current_action();
+                        app.call_selected_action();
                     }
                 }
                 _ => {}

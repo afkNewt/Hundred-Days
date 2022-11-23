@@ -1,62 +1,132 @@
 use serde::Deserialize;
-use std::fs;
+use std::{fs, collections::HashMap};
 
-#[derive(Deserialize, Debug, PartialEq, Clone, Copy)]
-pub enum Industry {
-    Mining,
-    Logging,
-    Farming,
+pub trait Action: ToString {
+    fn name(&self) -> &str;
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub enum RescourceAction {
+    Buy { buy_price: i32 },
+    Sell { sell_price: i32 },
+}
+
+impl ToString for RescourceAction {
+    fn to_string(&self) -> String {
+        match self {
+            RescourceAction::Buy { buy_price: price } => format!("Buy Price: {price}"),
+            RescourceAction::Sell { sell_price: price } => format!("Sell Price: {price}"),
+        }
+    }
+}
+
+impl Action for RescourceAction {
+    fn name(&self) -> &str {
+        match self {
+            RescourceAction::Buy { buy_price: _ } => "Buy",
+            RescourceAction::Sell { sell_price: _ } => "Sell",
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Resource {
     pub name: String,
     pub amount: f32,
-    pub industry: Industry,
-    pub actions: Vec<String>,
-
-    pub price: i32,
+    pub industries: Vec<String>,
+    pub actions: Vec<RescourceAction>,
 }
 
 impl Resource {
+    fn industry_as_string(&self) -> String {
+        let mut output = String::new();
+
+        for industry in &self.industries {
+            output = format!("{output}\n{industry}");
+        }
+
+        format!("{output}\n");
+        return output;
+    }
+
     pub fn information(&self) -> String {
-        return format!(
-            "name: {}\namount: {}\nindustry: {:?}\nprice: {}",
-            self.name, self.amount, self.industry, self.price
+        let mut output = format!(
+            "name: {}\namount: {}\n\nindustries: {}\n",
+            self.name, self.amount, self.industry_as_string()
         );
+
+        for action in &self.actions {
+            output = format!("{output}\n{}", action.to_string());
+        }
+
+        return output;
     }
 }
 
-pub fn resource_action(name: &str) -> fn(&mut Game, usize) -> String {
-    match name {
-        "buy" => |game, resource| {
-            if game.currency < game.resources[resource].price {
-                return format!(
-                    "Need {} more currency",
-                    game.resources[resource].price - game.currency
-                );
+pub fn resource_action(game: &mut Game, resource_name: &String, action: RescourceAction) -> String {
+    match action {
+        RescourceAction::Buy { buy_price: price } => {
+            let Some(resource) = game.resources.get_mut(resource_name) else {
+                return String::new();
+            };
+
+            if game.currency < price {
+                return format!("Need {} more currency", price - game.currency);
             }
 
-            game.currency -= game.resources[resource].price;
-            game.resources[resource].amount += 1.0;
+            game.currency -= price;
+            resource.amount += 1.0;
             return format!(
                 "Purchased one {} for {} currency",
-                game.resources[resource].name, game.resources[resource].price
+                resource_name, price
             );
-        },
-        "sell" => |game, resource| {
-            if game.resources[resource].amount < 1.0 {
+        }
+        RescourceAction::Sell { sell_price: price } => {
+            let Some(resource) = game.resources.get_mut(resource_name) else {
+                return String::new();
+            };
+
+            if resource.amount < 1.0 {
                 return "Need at least one of a resource to sell it".to_string();
             }
 
-            game.resources[resource].amount -= 1.0;
-            game.currency += game.resources[resource].price;
+            resource.amount -= 1.0;
+            game.currency += price;
             return format!(
                 "Sold one {} for {} currency",
-                game.resources[resource].name, game.resources[resource].price
+                resource_name, price
             );
-        },
-        _ => |_, _| return String::new(),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub enum BuildingAction {
+    Construct { build_cost: Vec<(String, f32)> },
+}
+
+impl ToString for BuildingAction {
+    fn to_string(&self) -> String {
+        match self {
+            BuildingAction::Construct { build_cost } => {
+                let mut output = format!("Build Cost:");
+
+                for (name, amount) in build_cost {
+                    output = format!("{output}\n{name}: {amount}");
+                }
+
+                format!("{output}\n");
+                return output;
+            }
+        }
+    }
+}
+
+impl Action for BuildingAction {
+    fn name(&self) -> &str {
+        match self {
+            BuildingAction::Construct { build_cost: _ } => "Construct",
+        }
     }
 }
 
@@ -64,48 +134,68 @@ pub fn resource_action(name: &str) -> fn(&mut Game, usize) -> String {
 pub struct Building {
     pub name: String,
     pub amount: i32,
-    pub industry: Industry,
-    pub actions: Vec<String>,
+    pub industries: Vec<String>,
+    pub actions: Vec<BuildingAction>,
 
     pub production: Vec<(String, f32)>,
-    pub cost: Vec<(String, f32)>,
 }
 
 impl Building {
-    fn vec_to_string(vec: Vec<(String, f32)>) -> String {
+    fn prod_as_string(&self) -> String {
         let mut output = String::new();
 
-        for (name, amount) in vec {
+        for (name, amount) in &self.production {
             output = format!("{output}\n{name}: {amount}");
         }
 
+        format!("{output}\n");
+        return output;
+    }
+
+    fn industry_as_string(&self) -> String {
+        let mut output = String::new();
+
+        for industry in &self.industries {
+            output = format!("{output}\n{industry}");
+        }
+
+        format!("{output}\n");
         return output;
     }
 
     pub fn information(&self) -> String {
-        return format!(
-            "name: {}\namount: {}\nindustry: {:?}\n\nproduction: {}\n\ncost: {}",
+        let mut output = format!(
+            "name: {}\namount: {}\nindustry: {}\n\nproduction: {}\n",
             self.name,
             self.amount,
-            self.industry,
-            Self::vec_to_string(self.production.clone()),
-            Self::vec_to_string(self.cost.clone())
+            self.industry_as_string(),
+            self.prod_as_string(),
         );
+
+        for action in &self.actions {
+            output = format!("{output}\n{}", action.to_string());
+        }
+
+        return output;
     }
 }
 
-pub fn building_action(name: &str) -> fn(&mut Game, usize) -> String {
-    match name {
-        "construct" => |game, building| {
+pub fn building_action(game: &mut Game, building_name: &str, action: BuildingAction) -> String {
+    match action {
+        BuildingAction::Construct { build_cost: cost } => {
+            let Some(building) = game.buildings.get_mut(building_name) else {
+                return String::new();
+            };
+
             let mut can_build = true;
             let mut output = "Not enough resources, Need:".to_string();
 
-            for (index, (resource, amount)) in game.buildings[building].cost.iter().enumerate() {
-                if game.resources[index].amount < *amount {
+            for (resource, amount) in &cost {
+                if game.resources[resource].amount < *amount {
                     can_build = false;
                     output = format!(
                         "{output}\n{} more {}",
-                        *amount - game.resources[index].amount,
+                        *amount - game.resources[resource].amount,
                         resource
                     );
                 }
@@ -115,14 +205,37 @@ pub fn building_action(name: &str) -> fn(&mut Game, usize) -> String {
                 return output;
             }
 
-            for (index, (_, amount)) in game.buildings[building].cost.iter().enumerate() {
-                game.resources[index].amount -= amount;
+            for (resource_name, amount) in &cost {
+                let Some(resource) = game.resources.get_mut(resource_name) else {
+                    continue;
+                };
+                resource.amount -= amount;
             }
-            game.buildings[building].amount += 1;
+            building.amount += 1;
 
-            return format!("Constructed one {}", game.buildings[building].name);
-        },
-        _ => |_, _| return String::new(),
+            return format!("Constructed one {}", building_name);
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub enum GlobalAction {
+    Pass,
+}
+
+impl ToString for GlobalAction {
+    fn to_string(&self) -> String {
+        match self {
+            GlobalAction::Pass => "Pass Day".to_string(),
+        }
+    }
+}
+
+impl Action for GlobalAction {
+    fn name(&self) -> &str {
+        match self {
+            GlobalAction::Pass => "Pass Day",
+        }
     }
 }
 
@@ -131,37 +244,37 @@ pub struct Game {
     pub currency: i32,
     pub days: i32,
 
-    pub actions: Vec<String>,
+    pub industries: Vec<String>,
 
-    pub resources: Vec<Resource>,
-    pub buildings: Vec<Building>,
+    pub global_actions: Vec<GlobalAction>,
+
+    pub resources: HashMap<String, Resource>,
+    pub buildings: HashMap<String, Building>,
 }
 
-pub fn global_action(name: &str) -> fn(&mut Game) -> String {
-    match name {
-        "pass" => |game| -> String {
+pub fn global_action(game: &mut Game, action: GlobalAction) -> String {
+    match action {
+        GlobalAction::Pass => {
             let mut output = "Passed the day:".to_string();
 
-            for building in &game.buildings {
-                output = format!("{output}\n\n{}:", building.name);
-                for (resource, amount) in building.production.iter() {
+            for (building_name, building) in &game.buildings {
+                output = format!("{output}\n\n{}:", building_name);
+                for (resource_name, amount) in building.production.iter() {
                     let amount = amount * building.amount as f32;
 
-                    let res = game.resources.iter_mut().find(|r| r.name == *resource);
-                    let Some(res) = res else {
+                    let Some(resource) = game.resources.get_mut(resource_name) else {
                         continue;
                     };
 
-                    res.amount += amount;
-                    output = format!("{output}\n{} ({}) {}", res.amount, amount, resource);
+                    resource.amount += amount;
+                    output = format!("{output}\n{} ({}) {}", resource.amount, amount, resource_name);
                 }
             }
 
             game.days -= 1;
 
             return output;
-        },
-        _ => |_| return String::new(),
+        }
     }
 }
 
@@ -172,6 +285,7 @@ impl Game {
             fs::read_to_string(file_path).expect("Should have been able to read the file");
 
         let game: Game = toml::from_str(&contents).unwrap();
+
         return game;
     }
 }

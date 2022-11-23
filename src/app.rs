@@ -1,6 +1,8 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{building_action, global_action, resource_action, Game, Industry};
+use crate::hundred_days::{
+    building_action, global_action, resource_action, Action, Game,
+};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -9,6 +11,14 @@ pub struct StatefulList {
 }
 
 impl StatefulList {
+    fn reset_state(&mut self) {
+        if self.items.is_empty() {
+            self.state = ListState::default();
+        } else {
+            self.state.select(Some(0));
+        }
+    }
+
     fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
@@ -46,6 +56,12 @@ pub enum Tab {
     Actions,
 }
 
+#[derive(PartialEq, Clone)]
+pub enum Item {
+    Resource,
+    Building,
+}
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum SelectionMode {
     Tabs,
@@ -66,9 +82,11 @@ pub struct App {
     pub extra_info: String,
 
     // selected industry
-    pub industry: Option<Industry>,
+    pub industry: String,
     // selected tab
     pub selected_tab: Tab,
+    // whether items or building was selected last
+    pub selected_item: Item,
     pub selection_mode: SelectionMode,
 
     pub game_state: Game,
@@ -80,54 +98,226 @@ impl App {
         default_state.select(Some(0));
 
         let state = StatefulList {
-            state: default_state,
+            state: default_state.clone(),
             items: Vec::new(),
+        };
+
+        let game = Game::from_toml();
+
+        let industries = StatefulList {
+            state: default_state.clone(),
+            items: game.industries.clone(),
         };
 
         let mut app = App {
             table_states: States {
                 resource: state.clone(),
                 building: state.clone(),
-                industry: state.clone(),
+                industry: industries,
                 action: state.clone(),
             },
             info: String::new(),
             extra_info: String::new(),
-            industry: None,
+            industry: game.industries[0].clone(),
             selected_tab: Tab::Resources,
             selection_mode: SelectionMode::Items,
-            game_state: Game::from_toml(),
+            game_state: game,
+            selected_item: Item::Resource,
         };
-        app.generate_lists();
-        app.update_info();
+        app.update_building_list();
+        app.update_resources_list();
+        app.update_actions_list();
+        app.update_info_table();
         return app;
     }
 
-    pub fn update_info(&mut self) {
-        match self.selected_tab {
-            Tab::Resources => {
-                self.info = self.game_state.resources[self.selected_resource()].information();
+    fn selected_building(&self) -> &str {
+        // gets index of selected building
+        let selected = self
+            .table_states
+            .building
+            .state
+            .selected()
+            .unwrap_or_default();
+        // gets name of selected building
+        let building_name = &self.table_states.building.items[selected];
+
+        return building_name;
+    }
+
+    fn selected_resource(&self) -> &str {
+        // gets index of selected resource
+        let selected = self
+            .table_states
+            .resource
+            .state
+            .selected()
+            .unwrap_or_default();
+        // gets name of selected resource
+        let resource_name = &self.table_states.resource.items[selected];
+
+        return resource_name;
+    }
+
+    fn update_resources_list(&mut self) {
+        self.table_states.resource.items = Vec::new();
+
+        for (resource_name, resource) in &self.game_state.resources {
+            if resource.industries.contains(&self.industry) {
+                self.table_states
+                    .resource
+                    .items
+                    .push(resource_name.to_string());
             }
-            Tab::Buildings => {
-                self.info = self.game_state.buildings[self.selected_building()].information();
+        }
+
+        self.table_states.resource.reset_state();
+    }
+
+    fn update_building_list(&mut self) {
+        self.table_states.building.items = Vec::new();
+
+        for (building_name, building) in &self.game_state.buildings {
+            if building.industries.contains(&self.industry) {
+                self.table_states
+                    .building
+                    .items
+                    .push(building_name.to_string());
             }
-            _ => {}
+        }
+
+        self.table_states.building.reset_state();
+    }
+
+    fn update_actions_list(&mut self) {
+        self.table_states.action.items = Vec::new();
+
+        for action in &self.game_state.global_actions {
+            self.table_states
+                .action
+                .items
+                .push(action.name().to_string());
+        }
+
+        match self.selected_item {
+            Item::Resource => {
+                let Some(resource) = self.game_state.resources.get(self.selected_resource()) else {
+                    return;
+                };
+    
+                for action in &resource.actions {
+                    self.table_states
+                        .action
+                        .items
+                        .push(action.name().to_string());
+                }
+            },
+            Item::Building => {
+                let Some(building) = self.game_state.buildings.get(self.selected_building()) else {
+                    return;
+                };
+    
+                for action in &building.actions {
+                    self.table_states
+                        .action
+                        .items
+                        .push(action.name().to_string());
+                }
+            },
+        }
+
+        self.table_states.action.reset_state();
+    }
+
+    fn update_info_table(&mut self) {
+        self.info = String::new();
+
+        match self.selected_item {
+            Item::Resource => {
+                let Some(resource) = self.game_state.resources.get(self.selected_resource()) else {
+                    return;
+                };
+    
+                self.info = resource.information();
+            },
+            Item::Building => {
+                let Some(building) = self.game_state.buildings.get(self.selected_building()) else {
+                    return;
+                };
+    
+                self.info = building.information();
+            },
         }
     }
 
-    pub fn swap_selection_mode(&mut self) {
+    pub fn navigate(&mut self, up: bool) {
+        if self.selection_mode == SelectionMode::Tabs {
+            return;
+        }
+
+        match self.selected_tab {
+            Tab::Resources => {
+                if up {
+                    self.table_states.resource.next();
+                } else {
+                    self.table_states.resource.previous();
+                }
+
+                self.update_actions_list();
+                self.update_info_table();
+            },
+            Tab::Buildings => {
+                if up {
+                    self.table_states.building.next();
+                } else {
+                    self.table_states.building.previous();
+                }
+                
+                self.update_actions_list();
+                self.update_info_table();
+            },
+            Tab::Industry => {
+                if up {
+                    self.table_states.industry.next();
+                } else {
+                    self.table_states.industry.previous();
+                }
+
+                if let Some(selected) = self.table_states.industry.state.selected() {
+                    self.industry = self.table_states.industry.items[selected].clone();
+                }
+
+                self.update_building_list();
+                self.update_resources_list();
+            },
+            Tab::Actions => {
+                if up {
+                    self.table_states.action.next();
+                } else {
+                    self.table_states.action.previous();
+                }
+            },
+        }
+    }
+
+    pub fn change_tab(&mut self, new_tab: Tab) {
+        self.selected_tab = new_tab;
+    }
+
+    pub fn alternate_selection_mode(&mut self) {
         match self.selection_mode {
             SelectionMode::Tabs => {
                 self.selection_mode = SelectionMode::Items;
 
-                if self.selected_tab == Tab::Resources {
-                    self.generate_lists();
-                }
                 if self.selected_tab == Tab::Buildings {
-                    self.generate_lists();
+                    self.selected_item = Item::Building;
+                }
+                if self.selected_tab == Tab::Resources {
+                    self.selected_item = Item::Resource;
                 }
 
-                self.update_info();
+                self.update_info_table();
+                self.update_actions_list();
             },
             SelectionMode::Items => {
                 self.selection_mode = SelectionMode::Tabs;
@@ -135,218 +325,47 @@ impl App {
         }
     }
 
-    pub fn change_selected_tab(&mut self, new_box: Tab) {
-        self.selected_tab = new_box;
-    }
-
-    fn reset_table_states(&mut self) {
-        let mut state = ListState::default();
-        state.select(Some(0));
-
-        self.table_states.resource.state = state.clone();
-        self.table_states.building.state = state.clone();
-        self.table_states.action.state = state.clone();
-    }
-
-    pub fn selected_building(&self) -> usize {
-        let index = self.table_states.building.state.selected();
-        let Some(selected) = index else {
-            return 0;
+    pub fn call_selected_action(&mut self) {
+        let action_index = self.table_states.action.state.selected();
+        let Some(mut action_index) = action_index else {
+            return;
         };
 
-        let Some(industry) = self.industry else {
-            return selected;
-        };
+        if action_index < self.game_state.global_actions.len() {
+            let action = self.game_state.global_actions[action_index].clone();
 
-        let mut counter = 0;
-        for (index, building) in self.game_state.buildings.iter().enumerate() {
-            if building.industry == industry {
-                if counter == selected {
-                    return index;
-                }
-                counter += 1;
-            }
-        }
-
-        return 0;
-    }
-
-    pub fn selected_resource(&self) -> usize {
-        let index = self.table_states.resource.state.selected();
-        let Some(selected) = index else {
-            return 0;
-        };
-
-        let Some(industry) = self.industry else {
-            return selected;
-        };
-
-        let mut counter = 0;
-        for (index, resource) in self.game_state.resources.iter().enumerate() {
-            if resource.industry == industry {
-                if counter == selected {
-                    return index;
-                }
-                counter += 1;
-            }
-        }
-
-        return 0;
-    }
-
-    pub fn selected_action(&self) -> String {
-        let index = self.table_states.action.state.selected();
-        let Some(index) = index else {
-            return String::new();
-        };
-
-        let action = self.table_states.action.items[index].clone();
-        return action;
-    }
-
-    pub fn navigate(&mut self, move_down: bool) {
-        match self.selected_tab {
-            Tab::Resources => {
-                if move_down {
-                    self.table_states.resource.next();
-                } else {
-                    self.table_states.resource.previous();
-                }
-            }
-            Tab::Buildings => {
-                if move_down {
-                    self.table_states.building.next();
-                } else {
-                    self.table_states.building.previous();
-                }
-            }
-            Tab::Industry => {
-                if move_down {
-                    self.table_states.industry.next();
-                } else {
-                    self.table_states.industry.previous();
-                }
-
-                if let Some(selected) = self.table_states.industry.state.selected() {
-                    match selected {
-                        0 => self.industry = Some(Industry::Mining),
-                        1 => self.industry = Some(Industry::Logging),
-                        2 => self.industry = Some(Industry::Farming),
-                        _ => self.industry = None,
-                    }
-                }
-                self.generate_lists();
-                self.reset_table_states();
-            }
-            Tab::Actions => {
-                if move_down {
-                    self.table_states.action.next();
-                } else {
-                    self.table_states.action.previous();
-                }
-            }
-        }
-        self.update_info();
-    }
-
-    pub fn generate_lists(&mut self) {
-        self.table_states.resource.items = Vec::new();
-        self.table_states.building.items = Vec::new();
-
-        if let Some(industry) = self.industry {
-            for resource in &self.game_state.resources {
-                if resource.industry == industry {
-                    self.table_states
-                        .resource
-                        .items
-                        .push(format!("{}", resource.name));
-                }
-            }
-
-            for building in &self.game_state.buildings {
-                if building.industry == industry {
-                    self.table_states
-                        .building
-                        .items
-                        .push(format!("{}", building.name));
-                }
-            }
-        } else {
-            for resource in &self.game_state.resources {
-                self.table_states
-                    .resource
-                    .items
-                    .push(format!("{}", resource.name));
-            }
-
-            for building in &self.game_state.buildings {
-                self.table_states
-                    .building
-                    .items
-                    .push(format!("{}", building.name));
-            }
-        }
-
-        self.table_states.industry.items = vec![
-            "Mining".to_string(),
-            "Logging".to_string(),
-            "Farming".to_string(),
-            "None".to_string(),
-        ];
-
-        self.table_states.action.items = Vec::new();
-        for action in &self.game_state.actions {
-            self.table_states.action.items.push(format!("{}", action));
-        }
-
-        match self.selected_tab {
-            Tab::Resources => {
-                for action in &self.game_state.resources[self.selected_resource()].actions {
-                    self.table_states.action.items.push(format!("{}", action));
-                }
-            }
-            Tab::Buildings => {
-                for action in &self.game_state.buildings[self.selected_building()].actions {
-                    self.table_states.action.items.push(format!("{}", action));
-                }
-            }
-            _ => {}
-        }
-    }
-
-    pub fn call_current_action(&mut self) {
-        let global_actions = self.game_state.actions.clone();
-        let building_actions = self.game_state.buildings[self.selected_building()]
-            .actions
-            .clone();
-        let resource_actions = self.game_state.resources[self.selected_resource()]
-            .actions
-            .clone();
-
-        if global_actions.contains(&self.selected_action()) {
-            let action = global_action(&self.selected_action());
-            let info = (action)(&mut self.game_state);
-
-            self.info = String::new();
+            let info = global_action(&mut self.game_state, action);
             self.extra_info = info;
+            self.update_info_table();
+            return;
         }
-        if building_actions.contains(&self.selected_action()) {
-            let action = building_action(&self.selected_action());
-            let selected_building = self.selected_building();
-            let info = (action)(&mut self.game_state, selected_building);
+        action_index -= self.game_state.global_actions.len();
 
-            self.info = self.game_state.buildings[selected_building].information();
-            self.extra_info = info;
+        match self.selected_item {
+            Item::Resource => {
+                let Some(resource) = self.game_state.resources.get(self.selected_resource()) else {
+                    return;
+                };
+    
+                let action = resource.actions[action_index].clone();
+                let resource_name = resource.name.clone();
+    
+                let info = resource_action(&mut self.game_state, &resource_name, action);
+                self.extra_info = info;
+                self.update_info_table();
+            },
+            Item::Building => {
+                let Some(building) = self.game_state.buildings.get(self.selected_building()) else {
+                    return;
+                };
+    
+                let action = building.actions[action_index].clone();
+                let building_name = building.name.clone();
+    
+                let info = building_action(&mut self.game_state, &building_name, action);
+                self.extra_info = info;
+                self.update_info_table();
+            },
         }
-        if resource_actions.contains(&self.selected_action()) {
-            let action = resource_action(&self.selected_action());
-            let selected_resource = self.selected_resource();
-            let info = (action)(&mut self.game_state, selected_resource);
-
-            self.info = self.game_state.resources[selected_resource].information();
-            self.extra_info = info;
-        }
-
-        self.update_info();
     }
 }
