@@ -60,11 +60,22 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     draw_resources(f, app, first_column[1]);
     // First Column
 
-    let industry_len: u16 = app.game_state.industries.len().try_into().unwrap_or_default();
+    let industry_len: u16 = app
+        .game_state
+        .industries
+        .len()
+        .try_into()
+        .unwrap_or_default();
     // Second Column
     let second_column = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(industry_len + 2), Constraint::Percentage(100)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(industry_len + 2),
+                Constraint::Percentage(100),
+            ]
+            .as_ref(),
+        )
         .split(chunks[1]);
 
     draw_industries(f, app, second_column[0]);
@@ -138,7 +149,14 @@ where
         .resource
         .items
         .iter()
-        .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.clone()))]))
+        .map(|res_name| {
+            let res_amount = app.game_state.resources.get(res_name).unwrap().amount;
+            let char_count = res_name.chars().count();
+            let lines = vec![
+                Spans::from(format!("{res_name}{:>1$.2}", res_amount, area.width as usize - char_count - 5)),
+            ];
+            ListItem::new(lines)
+        })
         .collect();
 
     let resources = List::new(resources)
@@ -214,7 +232,14 @@ where
         .building
         .items
         .iter()
-        .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.clone()))]))
+        .map(|build_name| {
+            let build_amount = app.game_state.buildings.get(build_name).unwrap().amount;
+            let char_count = build_name.chars().count();
+            let lines = vec![
+                Spans::from(format!("{build_name}{:>1$.2}", build_amount, area.width as usize - char_count - 5)),
+            ];
+            ListItem::new(lines)
+        })
         .collect();
 
     let buildings = List::new(buildings)

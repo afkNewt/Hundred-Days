@@ -1,8 +1,6 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{
-    building_action, global_action, resource_action, Action, Game,
-};
+use crate::hundred_days::{building_action, global_action, resource_action, Action, Game};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -204,26 +202,26 @@ impl App {
                 let Some(resource) = self.game_state.resources.get(self.selected_resource()) else {
                     return;
                 };
-    
+
                 for action in &resource.actions {
                     self.table_states
                         .action
                         .items
                         .push(action.name().to_string());
                 }
-            },
+            }
             Item::Building => {
                 let Some(building) = self.game_state.buildings.get(self.selected_building()) else {
                     return;
                 };
-    
+
                 for action in &building.actions {
                     self.table_states
                         .action
                         .items
                         .push(action.name().to_string());
                 }
-            },
+            }
         }
 
         self.table_states.action.reset_state();
@@ -237,16 +235,16 @@ impl App {
                 let Some(resource) = self.game_state.resources.get(self.selected_resource()) else {
                     return;
                 };
-    
+
                 self.info = resource.information();
-            },
+            }
             Item::Building => {
                 let Some(building) = self.game_state.buildings.get(self.selected_building()) else {
                     return;
                 };
-    
+
                 self.info = building.information();
-            },
+            }
         }
     }
 
@@ -265,17 +263,17 @@ impl App {
 
                 self.update_actions_list();
                 self.update_info_table();
-            },
+            }
             Tab::Buildings => {
                 if up {
                     self.table_states.building.next();
                 } else {
                     self.table_states.building.previous();
                 }
-                
+
                 self.update_actions_list();
                 self.update_info_table();
-            },
+            }
             Tab::Industry => {
                 if up {
                     self.table_states.industry.next();
@@ -289,14 +287,14 @@ impl App {
 
                 self.update_building_list();
                 self.update_resources_list();
-            },
+            }
             Tab::Actions => {
                 if up {
                     self.table_states.action.next();
                 } else {
                     self.table_states.action.previous();
                 }
-            },
+            }
         }
     }
 
@@ -318,10 +316,10 @@ impl App {
 
                 self.update_info_table();
                 self.update_actions_list();
-            },
+            }
             SelectionMode::Items => {
                 self.selection_mode = SelectionMode::Tabs;
-            },
+            }
         }
     }
 
@@ -346,26 +344,26 @@ impl App {
                 let Some(resource) = self.game_state.resources.get(self.selected_resource()) else {
                     return;
                 };
-    
+
                 let action = resource.actions[action_index].clone();
                 let resource_name = resource.name.clone();
-    
+
                 let info = resource_action(&mut self.game_state, &resource_name, action);
                 self.extra_info = info;
                 self.update_info_table();
-            },
+            }
             Item::Building => {
                 let Some(building) = self.game_state.buildings.get(self.selected_building()) else {
                     return;
                 };
-    
+
                 let action = building.actions[action_index].clone();
                 let building_name = building.name.clone();
-    
+
                 let info = building_action(&mut self.game_state, &building_name, action);
                 self.extra_info = info;
                 self.update_info_table();
-            },
+            }
         }
     }
 }
