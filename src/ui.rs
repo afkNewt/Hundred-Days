@@ -24,6 +24,29 @@ const HIGHLIGHT_STYLE: Style = Style {
 };
 
 pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    if app.game_state.days < 0 {
+        draw_end_screen(f, app);
+    } else {
+        draw_game_screen(f, app);
+    }
+}
+
+pub fn draw_end_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let size = f.size();
+
+    // Surrounding Block
+    let block = Block::default()
+        .style(DEFAULT_STYLE)
+        .borders(Borders::ALL)
+        .title(format!(" In {} days ", app.game_state.days))
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Plain);
+    f.render_widget(block, size);
+
+    draw_game_ended_stats(f, app, size);
+}
+
+pub fn draw_game_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let size = f.size();
 
     // Surrounding Block
@@ -91,6 +114,33 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Fourth Column
 }
 
+fn draw_game_ended_stats<B>(f: &mut Frame<B>, app: &App, area: Rect)
+where
+    B: Backend,
+{
+    let block = Block::default()
+        .style(DEFAULT_STYLE)
+        .borders(Borders::ALL)
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Plain);
+
+    let text = vec![
+        Spans::from(Span::raw("Congratulations!")),
+        Spans::from(Span::raw(format!(
+            "You earned {} points over {} Days",
+            app.game_state.net_worth(),
+            app.starting_day
+        ))),
+        Spans::from(Span::raw("Press q to exit")),
+    ];
+
+    let stats_block = Paragraph::new(text)
+        .alignment(Alignment::Center)
+        .block(block);
+
+    f.render_widget(stats_block, area);
+}
+
 fn draw_cash<B>(f: &mut Frame<B>, app: &App, area: Rect)
 where
     B: Backend,
@@ -152,9 +202,11 @@ where
         .map(|res_name| {
             let res_amount = app.game_state.resources.get(res_name).unwrap().amount;
             let char_count = res_name.chars().count();
-            let lines = vec![
-                Spans::from(format!("{res_name}{:>1$.2}", res_amount, area.width as usize - char_count - 5)),
-            ];
+            let lines = vec![Spans::from(format!(
+                "{res_name}{:>1$.2}",
+                res_amount,
+                area.width as usize - char_count - 5
+            ))];
             ListItem::new(lines)
         })
         .collect();
@@ -235,9 +287,11 @@ where
         .map(|build_name| {
             let build_amount = app.game_state.buildings.get(build_name).unwrap().amount;
             let char_count = build_name.chars().count();
-            let lines = vec![
-                Spans::from(format!("{build_name}{:>1$.2}", build_amount, area.width as usize - char_count - 5)),
-            ];
+            let lines = vec![Spans::from(format!(
+                "{build_name}{:>1$.2}",
+                build_amount,
+                area.width as usize - char_count - 5
+            ))];
             ListItem::new(lines)
         })
         .collect();

@@ -1,20 +1,20 @@
-use crate::{app::{App, SelectionMode, Tab}, ui::draw};
+use crate::{
+    app::{App, SelectionMode, Tab},
+    ui::draw,
+};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{
-    error::Error,
-    io,
-};
+use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
 
 pub fn run() -> Result<(), Box<dyn Error>> {
-        // setup terminal
+    // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -46,6 +46,13 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         terminal.draw(|f| draw(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
+            if app.game_state.days < 0 {
+                if key.code == KeyCode::Char('q') {
+                    return Ok(());
+                }
+                continue;
+            }
+
             match key.code {
                 KeyCode::Char('q') => {
                     return Ok(());
@@ -71,7 +78,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Up => {
                     if app.selection_mode == SelectionMode::Tabs {
                         match app.selected_tab {
-                            Tab::Buildings | Tab::Resources | Tab::Actions => app.change_tab(Tab::Industry),
+                            Tab::Buildings | Tab::Resources | Tab::Actions => {
+                                app.change_tab(Tab::Industry)
+                            }
                             _ => {}
                         }
                     } else {
@@ -81,11 +90,27 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Down => {
                     if app.selection_mode == SelectionMode::Tabs {
                         match app.selected_tab {
-                            Tab::Industry | Tab::Actions | Tab::Resources => app.change_tab(Tab::Buildings),
+                            Tab::Industry | Tab::Actions | Tab::Resources => {
+                                app.change_tab(Tab::Buildings)
+                            }
                             _ => {}
                         }
                     } else {
                         app.navigate(true);
+                    }
+                }
+                KeyCode::Backspace => {
+                    if app.selection_mode == SelectionMode::Tabs {
+                        app.alternate_selection_mode();
+                    }
+
+                    match app.selected_item {
+                        crate::app::Item::Resource => {
+                            app.change_tab(Tab::Resources);
+                        }
+                        crate::app::Item::Building => {
+                            app.change_tab(Tab::Buildings);
+                        }
                     }
                 }
                 KeyCode::Char(' ') => {

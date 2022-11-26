@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{fs, collections::HashMap};
+use std::{collections::HashMap, fs};
 
 pub trait Action: ToString {
     fn name(&self) -> &str;
@@ -52,7 +52,9 @@ impl Resource {
     pub fn information(&self) -> String {
         let mut output = format!(
             "name: {}\namount: {}\n\nindustries: {}\n",
-            self.name, self.amount, self.industry_as_string()
+            self.name,
+            self.amount,
+            self.industry_as_string()
         );
 
         for action in &self.actions {
@@ -76,10 +78,7 @@ pub fn resource_action(game: &mut Game, resource_name: &String, action: Rescourc
 
             game.currency -= price;
             resource.amount += 1.0;
-            return format!(
-                "Purchased one {} for {} currency",
-                resource_name, price
-            );
+            return format!("Purchased one {} for {} currency", resource_name, price);
         }
         RescourceAction::Sell { sell_price: price } => {
             let Some(resource) = game.resources.get_mut(resource_name) else {
@@ -92,10 +91,7 @@ pub fn resource_action(game: &mut Game, resource_name: &String, action: Rescourc
 
             resource.amount -= 1.0;
             game.currency += price;
-            return format!(
-                "Sold one {} for {} currency",
-                resource_name, price
-            );
+            return format!("Sold one {} for {} currency", resource_name, price);
         }
     }
 }
@@ -165,7 +161,7 @@ impl Building {
 
     pub fn information(&self) -> String {
         let mut output = format!(
-            "name: {}\namount: {}\nindustry: {}\n\nproduction: {}\n",
+            "name: {}\namount: {}\n\nindustry: {}\n\nproduction: {}\n",
             self.name,
             self.amount,
             self.industry_as_string(),
@@ -267,7 +263,10 @@ pub fn global_action(game: &mut Game, action: GlobalAction) -> String {
                     };
 
                     resource.amount += amount;
-                    output = format!("{output}\n{} ({}) {}", resource.amount, amount, resource_name);
+                    output = format!(
+                        "{output}\n{} ({}) {}",
+                        resource.amount, amount, resource_name
+                    );
                 }
             }
 
@@ -287,5 +286,22 @@ impl Game {
         let game: Game = toml::from_str(&contents).unwrap();
 
         return game;
+    }
+
+    pub fn net_worth(&self) -> i32 {
+        let mut net_worth = self.currency;
+
+        for (_, resource) in &self.resources {
+            for action in &resource.actions {
+                match action {
+                    RescourceAction::Sell { sell_price: price } => {
+                        net_worth += price * resource.amount.floor() as i32;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        return net_worth;
     }
 }

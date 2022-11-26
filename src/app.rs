@@ -88,6 +88,8 @@ pub struct App {
     pub selection_mode: SelectionMode,
 
     pub game_state: Game,
+    // for use in end screen
+    pub starting_day: i32,
 }
 
 impl App {
@@ -119,6 +121,7 @@ impl App {
             industry: game.industries.first().unwrap().to_string(),
             selected_tab: Tab::Resources,
             selection_mode: SelectionMode::Items,
+            starting_day: game.days.clone(),
             game_state: game,
             selected_item: Item::Resource,
         };
