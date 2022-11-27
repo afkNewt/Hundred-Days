@@ -1,6 +1,6 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{Game, ItemType, use_manual_action, use_global_action};
+use crate::hundred_days::{use_global_action, use_manual_action, Game, ItemType};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -100,7 +100,7 @@ impl App {
             items: Vec::new(),
         };
 
-        let game = Game::generate_from_toml();
+        let game = Game::generate_from_json();
 
         let industries = StatefulList {
             state: default_state.clone(),
@@ -165,10 +165,7 @@ impl App {
                 continue;
             }
             if item.industries.contains(&self.industry) {
-                self.table_states
-                    .resource
-                    .items
-                    .push(item_name.to_string());
+                self.table_states.resource.items.push(item_name.to_string());
             }
         }
 
@@ -183,10 +180,7 @@ impl App {
                 continue;
             }
             if item.industries.contains(&self.industry) {
-                self.table_states
-                    .building
-                    .items
-                    .push(item_name.to_string());
+                self.table_states.building.items.push(item_name.to_string());
             }
         }
 
@@ -197,10 +191,7 @@ impl App {
         self.table_states.action.items = Vec::new();
 
         for action in &self.game_state.global_actions {
-            self.table_states
-                .action
-                .items
-                .push(action.to_string());
+            self.table_states.action.items.push(action.name());
         }
 
         let selected_item;
@@ -212,21 +203,18 @@ impl App {
                 };
 
                 selected_item = item;
-            },
+            }
             Item::Building => {
                 let Some(item) = self.game_state.items.get(self.selected_building()) else {
                     return;
                 };
 
                 selected_item = item;
-            },
+            }
         }
 
         for action in &selected_item.manual_actions {
-            self.table_states
-                .action
-                .items
-                .push(action.to_string());
+            self.table_states.action.items.push(action.name());
         }
 
         self.table_states.action.reset_state();
@@ -299,8 +287,41 @@ impl App {
                 } else {
                     self.table_states.action.previous();
                 }
+
+                self.extra_info = self.get_selected_action_info();
             }
         }
+    }
+
+    fn get_selected_action_info(&self) -> String {
+        let Some(mut action_index) = self.table_states.action.state.selected() else {
+            return String::new();
+        };
+
+        if action_index < self.game_state.global_actions.len() {
+            return self.game_state.global_actions[action_index].to_string();
+        }
+        action_index -= self.game_state.global_actions.len();
+
+        let item;
+        match self.selected_item {
+            Item::Resource => {
+                let Some(resource) = self.game_state.items.get(self.selected_resource()) else {
+                    return String::new();
+                };
+
+                item = resource;
+            }
+            Item::Building => {
+                let Some(building) = self.game_state.items.get(self.selected_building()) else {
+                    return String::new();
+                };
+
+                item = building;
+            }
+        }
+
+        return item.manual_actions[action_index].to_string();
     }
 
     pub fn change_tab(&mut self, new_tab: Tab) {
@@ -314,9 +335,11 @@ impl App {
 
                 if self.selected_tab == Tab::Buildings {
                     self.selected_item = Item::Building;
+                    self.extra_info = String::new();
                 }
                 if self.selected_tab == Tab::Resources {
                     self.selected_item = Item::Resource;
+                    self.extra_info = String::new();
                 }
 
                 self.update_info_table();
@@ -353,14 +376,14 @@ impl App {
                 };
 
                 item = resource;
-            },
+            }
             Item::Building => {
                 let Some(building) = self.game_state.items.get(self.selected_building()) else {
                     return;
                 };
 
                 item = building;
-            },
+            }
         }
 
         let action = item.manual_actions[action_index].clone();

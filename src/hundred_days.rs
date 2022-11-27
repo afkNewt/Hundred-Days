@@ -1,5 +1,4 @@
 use std::{collections::HashMap, fs};
-
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -19,6 +18,35 @@ pub enum ManualAction {
 impl ToString for ManualAction {
     fn to_string(&self) -> String {
         match self {
+            ManualAction::Buy { buy_price } => return format!("Buy Price: {buy_price}"),
+            ManualAction::Sell { sell_price } => return format!("Sell Price: {sell_price}"),
+            ManualAction::Construct { build_cost } => {
+                let mut output = format!("Build Cost:");
+
+                for (name, amount) in build_cost {
+                    output = format!("{output}\n{name}: {amount}");
+                }
+
+                format!("{output}\n");
+                return output;
+            },
+            ManualAction::Deconstruct { item_gain } => {
+                let mut output = format!("Deconstruction Recouperation:");
+
+                for (name, amount) in item_gain {
+                    output = format!("{output}\n{name}: {amount}");
+                }
+
+                format!("{output}\n");
+                return output;
+            },
+        }
+    }
+}
+
+impl ManualAction {
+    pub fn name(&self) -> String {
+        match self {
             ManualAction::Buy { buy_price: _ } => return "Buy".to_string(),
             ManualAction::Sell { sell_price: _ } => return "Sell".to_string(),
             ManualAction::Construct { build_cost: _ } => return "Construct".to_string(),
@@ -37,8 +65,8 @@ pub enum DailyAction {
     },
 }
 
-impl DailyAction {
-    pub fn description(&self) -> String {
+impl ToString for DailyAction {
+    fn to_string(&self) -> String {
         match self {
             DailyAction::Produce { item_production } => {
                 let mut output = "Produces daily:".to_string();
@@ -75,6 +103,14 @@ impl ToString for GlobalAction {
     }
 }
 
+impl GlobalAction {
+    pub fn name(&self) -> String { 
+        match self {
+            GlobalAction::PassDay => return "Pass Day".to_string(),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct Item {
     pub name: String,
@@ -102,7 +138,7 @@ impl Item {
         );
 
         for action in &self.daily_actions {
-            output = format!("{output}\n{}", action.description());
+            output = format!("{output}\n{}", action.to_string());
         }
 
         return output;
@@ -158,8 +194,8 @@ pub fn use_manual_action(
             );
         }
         ManualAction::Construct { build_cost: price } => {
-            let mut output = format!("Couldnt purchase {activation_amount} {item_name}, need:");
-            let mut amount_can_construct = 0;
+            let mut output = format!("Could not construct {activation_amount} {item_name}, need:");
+            let mut can_construct = true;
 
             // see how many we can construct
             for (item_name, amount) in price {
@@ -168,18 +204,15 @@ pub fn use_manual_action(
                 };
 
                 if item.amount - amount * activation_amount < 0 {
+                    can_construct = false;
                     output = format!(
                         "{output}\n{} more {item_name}",
                         amount * activation_amount - item.amount
                     );
-                } else {
-                    amount_can_construct += 1;
                 }
             }
 
-            // if we cant construct enough, return
-            if !amount_can_construct == activation_amount {
-                output = format!("{output}\nCan only construct {amount_can_construct} {item_name}");
+            if !can_construct {
                 return output;
             }
 
@@ -192,7 +225,7 @@ pub fn use_manual_action(
                 };
 
                 item.amount -= amount * activation_amount;
-                output = format!("{output}{item_name}: {}", amount * activation_amount);
+                output = format!("{output}\n{item_name}: {}", amount * activation_amount);
             }
 
             // we can use unwarp because we make sure
@@ -212,13 +245,15 @@ pub fn use_manual_action(
             }
 
             let mut output = format!("Deconstructed {activation_amount} {item_name} and recouped:");
+
+            item.amount -= activation_amount;
             for (item_name, amount) in price {
                 let Some(item) = game.items.get_mut(item_name) else {
                     continue;
                 };
 
                 output = format!("{output}\n{item_name}: {amount}");
-                item.amount -= amount;
+                item.amount += amount;
             }
 
             return output;
@@ -236,14 +271,16 @@ pub fn use_passive_action(item_name: String, game: &mut Game, action: &DailyActi
         DailyAction::Produce {
             item_production: prod,
         } => {
+            let item_amount = game.items.get(&item_name).unwrap().amount;
+
             let mut output = format!("{item_name} produced:");
             for (item_name, amount) in prod {
                 let Some(item) = game.items.get_mut(item_name) else {
                     continue;
                 };
 
-                output = format!("{item_name}: {amount}");
-                item.amount += amount;
+                output = format!("{item_name}: {}", amount * item_amount);
+                item.amount += amount * item_amount;
             }
 
             return output;
@@ -251,19 +288,21 @@ pub fn use_passive_action(item_name: String, game: &mut Game, action: &DailyActi
         DailyAction::Reduction {
             item_reduction: cost,
         } => {
+            let item_amount = game.items.get(&item_name).unwrap().amount;
+            
             let mut output = format!("{item_name} took:");
 
             for (item_name, amount) in cost {
-                let Some(item) = game.items.get_mut(item_name) else {
+                let Some(reduced_item) = game.items.get_mut(item_name) else {
                     continue;
                 };
 
                 let mut amount_reduced = 0;
-                item.amount -= amount;
+                reduced_item.amount -= amount * item_amount;
 
-                if item.amount < 0 {
-                    amount_reduced += item.amount.abs();
-                    item.amount += item.amount.abs();
+                if reduced_item.amount < 0 {
+                    amount_reduced += reduced_item.amount.abs();
+                    reduced_item.amount += reduced_item.amount.abs();
                 }
 
                 output = format!("{output}\n{item_name}: {amount_reduced}");
@@ -303,12 +342,12 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn generate_from_toml() -> Self {
-        let file_path = "hundred_days.toml";
+    pub fn generate_from_json() -> Self {
+        let file_path = "hundred_days.json";
         let contents =
             fs::read_to_string(file_path).expect("Should have been able to read the file");
 
-        let game: Game = toml::from_str(&contents).unwrap();
+        let game: Game = serde_json::from_str(&contents).unwrap();
 
         return game;
     }
