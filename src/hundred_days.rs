@@ -1,284 +1,309 @@
-use serde::Deserialize;
 use std::{collections::HashMap, fs};
 
-pub trait Action: ToString {
-    fn name(&self) -> &str;
+use serde::Deserialize;
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub enum ItemType {
+    Resource,
+    Building,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
-pub enum RescourceAction {
+pub enum ManualAction {
     Buy { buy_price: i32 },
     Sell { sell_price: i32 },
+    Construct { build_cost: HashMap<String, i32> },
+    Deconstruct { item_gain: HashMap<String, i32> },
 }
 
-impl ToString for RescourceAction {
+impl ToString for ManualAction {
     fn to_string(&self) -> String {
         match self {
-            RescourceAction::Buy { buy_price: price } => format!("Buy Price: {price}"),
-            RescourceAction::Sell { sell_price: price } => format!("Sell Price: {price}"),
-        }
-    }
-}
-
-impl Action for RescourceAction {
-    fn name(&self) -> &str {
-        match self {
-            RescourceAction::Buy { buy_price: _ } => "Buy",
-            RescourceAction::Sell { sell_price: _ } => "Sell",
-        }
-    }
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Resource {
-    pub name: String,
-    pub amount: f32,
-    pub industries: Vec<String>,
-    pub actions: Vec<RescourceAction>,
-}
-
-impl Resource {
-    fn industry_as_string(&self) -> String {
-        let mut output = String::new();
-
-        for industry in &self.industries {
-            output = format!("{output}\n{industry}");
-        }
-
-        format!("{output}\n");
-        return output;
-    }
-
-    pub fn information(&self) -> String {
-        let mut output = format!(
-            "name: {}\namount: {}\n\nindustries: {}\n",
-            self.name,
-            self.amount,
-            self.industry_as_string()
-        );
-
-        for action in &self.actions {
-            output = format!("{output}\n{}", action.to_string());
-        }
-
-        return output;
-    }
-}
-
-pub fn resource_action(game: &mut Game, resource_name: &String, action: RescourceAction) -> String {
-    match action {
-        RescourceAction::Buy { buy_price: price } => {
-            let Some(resource) = game.resources.get_mut(resource_name) else {
-                return String::new();
-            };
-
-            if game.currency < price {
-                return format!("Need {} more currency", price - game.currency);
-            }
-
-            game.currency -= price;
-            resource.amount += 1.0;
-            return format!("Purchased one {} for {} currency", resource_name, price);
-        }
-        RescourceAction::Sell { sell_price: price } => {
-            let Some(resource) = game.resources.get_mut(resource_name) else {
-                return String::new();
-            };
-
-            if resource.amount < 1.0 {
-                return "Need at least one of a resource to sell it".to_string();
-            }
-
-            resource.amount -= 1.0;
-            game.currency += price;
-            return format!("Sold one {} for {} currency", resource_name, price);
+            ManualAction::Buy { buy_price: _ } => return "Buy".to_string(),
+            ManualAction::Sell { sell_price: _ } => return "Sell".to_string(),
+            ManualAction::Construct { build_cost: _ } => return "Construct".to_string(),
+            ManualAction::Deconstruct { item_gain: _ } => return "Deconstruct".to_string(),
         }
     }
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
-pub enum BuildingAction {
-    Construct { build_cost: Vec<(String, f32)> },
+pub enum DailyAction {
+    Produce {
+        item_production: HashMap<String, i32>,
+    },
+    Reduction {
+        item_reduction: HashMap<String, i32>,
+    },
 }
 
-impl ToString for BuildingAction {
-    fn to_string(&self) -> String {
+impl DailyAction {
+    pub fn description(&self) -> String {
         match self {
-            BuildingAction::Construct { build_cost } => {
-                let mut output = format!("Build Cost:");
+            DailyAction::Produce { item_production } => {
+                let mut output = "Produces daily:".to_string();
 
-                for (name, amount) in build_cost {
-                    output = format!("{output}\n{name}: {amount}");
+                for (item_name, amount) in item_production {
+                    output = format!("{output}\n{item_name}: {amount}")
                 }
 
-                format!("{output}\n");
                 return output;
-            }
-        }
-    }
-}
+            },
+            DailyAction::Reduction { item_reduction } => {
+                let mut output = "Reduces daily:".to_string();
 
-impl Action for BuildingAction {
-    fn name(&self) -> &str {
-        match self {
-            BuildingAction::Construct { build_cost: _ } => "Construct",
-        }
-    }
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Building {
-    pub name: String,
-    pub amount: i32,
-    pub industries: Vec<String>,
-    pub actions: Vec<BuildingAction>,
-
-    pub production: Vec<(String, f32)>,
-}
-
-impl Building {
-    fn prod_as_string(&self) -> String {
-        let mut output = String::new();
-
-        for (name, amount) in &self.production {
-            output = format!("{output}\n{name}: {amount}");
-        }
-
-        format!("{output}\n");
-        return output;
-    }
-
-    fn industry_as_string(&self) -> String {
-        let mut output = String::new();
-
-        for industry in &self.industries {
-            output = format!("{output}\n{industry}");
-        }
-
-        format!("{output}\n");
-        return output;
-    }
-
-    pub fn information(&self) -> String {
-        let mut output = format!(
-            "name: {}\namount: {}\n\nindustry: {}\n\nproduction: {}\n",
-            self.name,
-            self.amount,
-            self.industry_as_string(),
-            self.prod_as_string(),
-        );
-
-        for action in &self.actions {
-            output = format!("{output}\n{}", action.to_string());
-        }
-
-        return output;
-    }
-}
-
-pub fn building_action(game: &mut Game, building_name: &str, action: BuildingAction) -> String {
-    match action {
-        BuildingAction::Construct { build_cost: cost } => {
-            let Some(building) = game.buildings.get_mut(building_name) else {
-                return String::new();
-            };
-
-            let mut can_build = true;
-            let mut output = "Not enough resources, Need:".to_string();
-
-            for (resource, amount) in &cost {
-                if game.resources[resource].amount < *amount {
-                    can_build = false;
-                    output = format!(
-                        "{output}\n{} more {}",
-                        *amount - game.resources[resource].amount,
-                        resource
-                    );
+                for (item_name, amount) in item_reduction {
+                    output = format!("{output}\n{item_name}: {amount}")
                 }
-            }
 
-            if !can_build {
                 return output;
-            }
-
-            for (resource_name, amount) in &cost {
-                let Some(resource) = game.resources.get_mut(resource_name) else {
-                    continue;
-                };
-                resource.amount -= amount;
-            }
-            building.amount += 1;
-
-            return format!("Constructed one {}", building_name);
+            },
         }
     }
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum GlobalAction {
-    Pass,
+    PassDay,
 }
 
 impl ToString for GlobalAction {
     fn to_string(&self) -> String {
         match self {
-            GlobalAction::Pass => "Pass Day".to_string(),
+            GlobalAction::PassDay => return "Pass Day".to_string(),
         }
     }
 }
 
-impl Action for GlobalAction {
-    fn name(&self) -> &str {
-        match self {
-            GlobalAction::Pass => "Pass Day",
-        }
-    }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Game {
-    pub currency: i32,
-    pub days: i32,
-
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct Item {
+    pub name: String,
+    pub amount: i32,
+    pub r#type: ItemType,
     pub industries: Vec<String>,
-
-    pub global_actions: Vec<GlobalAction>,
-
-    pub resources: HashMap<String, Resource>,
-    pub buildings: HashMap<String, Building>,
+    pub manual_actions: Vec<ManualAction>,
+    pub daily_actions: Vec<DailyAction>,
 }
 
-pub fn global_action(game: &mut Game, action: GlobalAction) -> String {
+impl Item {
+    fn industries_to_string(&self) -> String {
+        let output = "Industries:".to_string();
+
+        for industry in &self.industries {
+            format!("{output}\n{industry}");
+        }
+
+        return output;
+    }
+
+    pub fn information(&self) -> String {
+        let mut output = format!("Name: {}\nAmount: {}\nIndustries: {}\n",
+            self.name, self.amount, self.industries_to_string()
+        );
+
+        for action in &self.daily_actions {
+            output = format!("{output}\n{}", action.description());
+        }
+
+        return output;
+    }
+}
+
+pub fn use_manual_action(
+    item_name: String,
+    game: &mut Game,
+    action: &ManualAction,
+    activation_amount: i32,
+) -> String {
+    // make sure key is valid
+    if !game.items.contains_key(&item_name) {
+        return String::new();
+    };
+
     match action {
-        GlobalAction::Pass => {
-            let mut output = "Passed the day:".to_string();
+        ManualAction::Buy { buy_price: price } => {
+            let Some(item) = game.items.get_mut(&item_name) else {
+                return String::new();
+            };
 
-            for (building_name, building) in &game.buildings {
-                output = format!("{output}\n\n{}:", building_name);
-                for (resource_name, amount) in building.production.iter() {
-                    let amount = amount * building.amount as f32;
+            if game.currency < price * activation_amount {
+                return format!(
+                    "Can only buy {} {item_name}",
+                    price * activation_amount - game.currency
+                );
+            }
 
-                    let Some(resource) = game.resources.get_mut(resource_name) else {
-                        continue;
-                    };
+            game.currency -= price * activation_amount;
+            item.amount += activation_amount;
+            return format!(
+                "Bought {activation_amount} {item_name} for {} currency",
+                price * activation_amount
+            );
+        }
+        ManualAction::Sell { sell_price: price } => {
+            let Some(item) = game.items.get_mut(&item_name) else {
+                return String::new();
+            };
 
-                    resource.amount += amount;
+            if item.amount < activation_amount {
+                return format!("Not enough {item_name} to sell {activation_amount} {item_name}");
+            }
+
+            item.amount -= activation_amount;
+            game.currency += activation_amount * price;
+
+            return format!(
+                "Sold {activation_amount} {item_name} for {} currency",
+                activation_amount * price
+            );
+        }
+        ManualAction::Construct { build_cost: price } => {
+            let mut output = format!("Couldnt purchase {activation_amount} {item_name}, need:");
+            let mut amount_can_construct = 0;
+
+            // see how many we can construct
+            for (item_name, amount) in price {
+                let Some(item) = game.items.get(item_name) else {
+                continue;
+                };
+
+                if item.amount - amount * activation_amount < 0 {
                     output = format!(
-                        "{output}\n{} ({}) {}",
-                        resource.amount, amount, resource_name
+                        "{output}\n{} more {item_name}",
+                        amount * activation_amount - item.amount
                     );
+                } else {
+                    amount_can_construct += 1;
                 }
             }
 
-            game.days -= 1;
+            // if we cant construct enough, return
+            if !amount_can_construct == activation_amount {
+                output = format!("{output}\nCan only construct {amount_can_construct} {item_name}");
+                return output;
+            }
+
+            // action is possible
+            output = format!("Constructed {activation_amount} {item_name} for:");
+
+            for (item_name, amount) in price {
+                let Some(item) = game.items.get_mut(item_name) else {
+                continue;
+                };
+
+                item.amount -= amount * activation_amount;
+                output = format!("{output}{item_name}: {}", amount * activation_amount);
+            }
+
+            // we can use unwarp because we make sure
+            // the key is valid at the start of the function
+            game.items.get_mut(&item_name).unwrap().amount += activation_amount;
+            return output;
+        }
+        ManualAction::Deconstruct { item_gain: price } => {
+            let Some(item) = game.items.get_mut(&item_name) else {
+                return String::new();
+            };
+
+            if item.amount < activation_amount {
+                return format!(
+                    "Not enough {item_name} to deconstruct {activation_amount} {item_name}"
+                );
+            }
+
+            let mut output = format!("Deconstructed {activation_amount} {item_name} and recouped:");
+            for (item_name, amount) in price {
+                let Some(item) = game.items.get_mut(item_name) else {
+                    continue;
+                };
+
+                output = format!("{output}\n{item_name}: {amount}");
+                item.amount -= amount;
+            }
 
             return output;
         }
     }
 }
 
+pub fn use_passive_action(item_name: String, game: &mut Game, action: &DailyAction) -> String {
+    // make sure key is valid
+    if !game.items.contains_key(&item_name) {
+        return String::new();
+    };
+
+    match action {
+        DailyAction::Produce {
+            item_production: prod,
+        } => {
+            let mut output = format!("{item_name} produced:");
+            for (item_name, amount) in prod {
+                let Some(item) = game.items.get_mut(item_name) else {
+                    continue;
+                };
+
+                output = format!("{item_name}: {amount}");
+                item.amount += amount;
+            }
+
+            return output;
+        }
+        DailyAction::Reduction {
+            item_reduction: cost,
+        } => {
+            let mut output = format!("{item_name} took:");
+
+            for (item_name, amount) in cost {
+                let Some(item) = game.items.get_mut(item_name) else {
+                    continue;
+                };
+
+                let mut amount_reduced = 0;
+                item.amount -= amount;
+
+                if item.amount < 0 {
+                    amount_reduced += item.amount.abs();
+                    item.amount += item.amount.abs();
+                }
+
+                output = format!("{output}\n{item_name}: {amount_reduced}");
+            }
+
+            return output;
+        }
+    }
+}
+
+pub fn use_global_action(game: &mut Game, action: &GlobalAction) -> String {
+    match action {
+        GlobalAction::PassDay => {
+            for (item_name, item) in game.items.clone() {
+                for action in &item.daily_actions {
+                    use_passive_action(item_name.to_string(), game, action);
+                }
+            }
+
+            game.current_day -= 1;
+
+            return format!("It is the dawn of the {} Day", game.current_day);
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct Game {
+    pub starting_day: i32,
+    pub current_day: i32,
+
+    pub industries: Vec<String>,
+    pub global_actions: Vec<GlobalAction>,
+
+    pub currency: i32,
+    pub items: HashMap<String, Item>,
+}
+
 impl Game {
-    pub fn from_toml() -> Self {
+    pub fn generate_from_toml() -> Self {
         let file_path = "hundred_days.toml";
         let contents =
             fs::read_to_string(file_path).expect("Should have been able to read the file");
@@ -291,14 +316,52 @@ impl Game {
     pub fn net_worth(&self) -> i32 {
         let mut net_worth = self.currency;
 
-        for (_, resource) in &self.resources {
-            for action in &resource.actions {
-                match action {
-                    RescourceAction::Sell { sell_price: price } => {
-                        net_worth += price * resource.amount.floor() as i32;
+        for (_, item) in self.items.iter() {
+            let deconstruct: Vec<&HashMap<String, i32>> = item
+                .manual_actions
+                .iter()
+                .filter_map(|a| match a {
+                    ManualAction::Deconstruct { item_gain: price } => Some(price),
+                    _ => None,
+                })
+                .collect();
+
+            // Item can be deconstructed
+            if let Some(deconstruct) = deconstruct.first() {
+                for (item_name, amount) in *deconstruct {
+                    let Some(item) = self.items.get(item_name) else {
+                        continue;
+                    };
+
+                    let sell: Vec<&i32> = item
+                        .manual_actions
+                        .iter()
+                        .filter_map(|a| match a {
+                            ManualAction::Sell { sell_price: price } => Some(price),
+                            _ => None,
+                        })
+                        .collect();
+
+                    // Item recieved from deconstruction
+                    // can be sold
+                    if let Some(price) = sell.first() {
+                        net_worth += *price * amount;
                     }
-                    _ => {}
                 }
+            }
+
+            let sell: Vec<&i32> = item
+                .manual_actions
+                .iter()
+                .filter_map(|a| match a {
+                    ManualAction::Sell { sell_price: price } => Some(price),
+                    _ => None,
+                })
+                .collect();
+
+            // Item can be sold
+            if let Some(price) = sell.first() {
+                net_worth += *price * item.amount;
             }
         }
 

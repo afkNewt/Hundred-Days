@@ -46,7 +46,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         terminal.draw(|f| draw(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
-            if app.game_state.days < 0 {
+            if app.game_state.current_day < 0 {
                 if key.code == KeyCode::Char('q') {
                     return Ok(());
                 }

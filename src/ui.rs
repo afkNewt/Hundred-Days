@@ -24,7 +24,7 @@ const HIGHLIGHT_STYLE: Style = Style {
 };
 
 pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    if app.game_state.days < 0 {
+    if app.game_state.current_day < 0 {
         draw_end_screen(f, app);
     } else {
         draw_game_screen(f, app);
@@ -38,7 +38,7 @@ pub fn draw_end_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
-        .title(format!(" In {} days ", app.game_state.days))
+        .title(format!(" In {} days ", app.game_state.current_day))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
     f.render_widget(block, size);
@@ -53,7 +53,7 @@ pub fn draw_game_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
-        .title(format!(" In {} days ", app.game_state.days))
+        .title(format!(" In {} days ", app.game_state.current_day))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
     f.render_widget(block, size);
@@ -129,7 +129,7 @@ where
         Spans::from(Span::raw(format!(
             "You earned {} points over {} Days",
             app.game_state.net_worth(),
-            app.starting_day
+            app.game_state.starting_day
         ))),
         Spans::from(Span::raw("Press q to exit")),
     ];
@@ -200,7 +200,7 @@ where
         .items
         .iter()
         .map(|res_name| {
-            let res_amount = app.game_state.resources.get(res_name).unwrap().amount;
+            let res_amount = app.game_state.items.get(res_name).unwrap().amount;
             let char_count = res_name.chars().count();
             let lines = vec![Spans::from(format!(
                 "{res_name}{:>1$.2}",
@@ -285,7 +285,7 @@ where
         .items
         .iter()
         .map(|build_name| {
-            let build_amount = app.game_state.buildings.get(build_name).unwrap().amount;
+            let build_amount = app.game_state.items.get(build_name).unwrap().amount;
             let char_count = build_name.chars().count();
             let lines = vec![Spans::from(format!(
                 "{build_name}{:>1$.2}",
