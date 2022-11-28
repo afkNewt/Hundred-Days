@@ -79,6 +79,10 @@ pub struct App {
     pub info: String,
     pub extra_info: String,
 
+    // number of times to call an action
+    // when an action is activated
+    pub activation_amount: i32,
+
     // selected industry
     pub industry: String,
     // selected tab
@@ -116,6 +120,7 @@ impl App {
             },
             info: String::new(),
             extra_info: String::new(),
+            activation_amount: 1,
             industry: game.industries.first().unwrap().to_string(),
             selected_tab: Tab::Resources,
             selection_mode: SelectionMode::Items,
@@ -389,7 +394,7 @@ impl App {
         let action = item.manual_actions[action_index].clone();
         let item_name = item.name.clone();
 
-        let info = use_manual_action(item_name, &mut self.game_state, &action, 1);
+        let info = use_manual_action(item_name, &mut self.game_state, &action, self.activation_amount);
         self.extra_info = info;
         self.update_info_table();
     }

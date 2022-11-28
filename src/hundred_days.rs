@@ -1,5 +1,5 @@
-use std::{collections::HashMap, fs};
 use serde::Deserialize;
+use std::{collections::HashMap, fs};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum ItemType {
@@ -29,7 +29,7 @@ impl ToString for ManualAction {
 
                 format!("{output}\n");
                 return output;
-            },
+            }
             ManualAction::Deconstruct { item_gain } => {
                 let mut output = format!("Deconstruction Recouperation:");
 
@@ -39,7 +39,7 @@ impl ToString for ManualAction {
 
                 format!("{output}\n");
                 return output;
-            },
+            }
         }
     }
 }
@@ -76,7 +76,7 @@ impl ToString for DailyAction {
                 }
 
                 return output;
-            },
+            }
             DailyAction::Reduction { item_reduction } => {
                 let mut output = "Reduces daily:".to_string();
 
@@ -85,7 +85,7 @@ impl ToString for DailyAction {
                 }
 
                 return output;
-            },
+            }
         }
     }
 }
@@ -104,7 +104,7 @@ impl ToString for GlobalAction {
 }
 
 impl GlobalAction {
-    pub fn name(&self) -> String { 
+    pub fn name(&self) -> String {
         match self {
             GlobalAction::PassDay => return "Pass Day".to_string(),
         }
@@ -122,19 +122,15 @@ pub struct Item {
 }
 
 impl Item {
-    fn industries_to_string(&self) -> String {
-        let output = "Industries:".to_string();
-
-        for industry in &self.industries {
-            format!("{output}\n{industry}");
-        }
-
-        return output;
-    }
-
     pub fn information(&self) -> String {
-        let mut output = format!("Name: {}\nAmount: {}\nIndustries: {}\n",
-            self.name, self.amount, self.industries_to_string()
+        let industries: String = self.industries.iter().map(|i| {
+            format!("\n{i}")
+        }).collect();
+
+        let mut output = format!(
+            "Name: {}\nAmount: {}\nIndustries: {industries}\n",
+            self.name,
+            self.amount,
         );
 
         for action in &self.daily_actions {
@@ -289,7 +285,7 @@ pub fn use_passive_action(item_name: String, game: &mut Game, action: &DailyActi
             item_reduction: cost,
         } => {
             let item_amount = game.items.get(&item_name).unwrap().amount;
-            
+
             let mut output = format!("{item_name} took:");
 
             for (item_name, amount) in cost {
@@ -333,6 +329,8 @@ pub fn use_global_action(game: &mut Game, action: &GlobalAction) -> String {
 pub struct Game {
     pub starting_day: i32,
     pub current_day: i32,
+
+    pub black_market_days: Vec<i32>,
 
     pub industries: Vec<String>,
     pub global_actions: Vec<GlobalAction>,

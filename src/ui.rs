@@ -322,7 +322,7 @@ where
                 DEFAULT_STYLE
             },
         )
-        .title(" Actions ")
+        .title(format!(" Actions ({}) ", app.activation_amount))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
 
