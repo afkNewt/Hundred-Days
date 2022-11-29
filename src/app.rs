@@ -1,6 +1,6 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{use_global_action, use_manual_action, Game, ItemType};
+use crate::hundred_days::{game::Game, action::{ItemlessAction, ItemAction, Information}, item::ItemType};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -134,7 +134,7 @@ impl App {
         return app;
     }
 
-    fn selected_building(&self) -> &str {
+    pub fn selected_building(&self) -> &str {
         // gets index of selected building
         let selected = self
             .table_states
@@ -148,7 +148,7 @@ impl App {
         return building_name;
     }
 
-    fn selected_resource(&self) -> &str {
+    pub fn selected_resource(&self) -> &str {
         // gets index of selected resource
         let selected = self
             .table_states
@@ -160,6 +160,41 @@ impl App {
         let resource_name = &self.table_states.resource.items[selected];
 
         return resource_name;
+    }
+
+    fn selected_action(&self) -> (Option<impl ItemlessAction>, Option<impl ItemAction>) {
+        let action_index = self.table_states.action.state.selected();
+        let Some(mut action_index) = action_index else {
+            return (None, None);
+        };
+
+        if action_index < self.game_state.global_actions.len() {
+            let action = self.game_state.global_actions[action_index].clone();
+
+            return(Some(action), None);
+        }
+        action_index -= self.game_state.global_actions.len();
+
+        let item;
+        match self.selected_item {
+            Item::Resource => {
+                let Some(resource) = self.game_state.items.get(self.selected_resource()) else {
+                    return (None, None);
+                };
+
+                item = resource;
+            }
+            Item::Building => {
+                let Some(building) = self.game_state.items.get(self.selected_building()) else {
+                    return (None, None);
+                };
+
+                item = building;
+            }
+        }
+
+        let action = item.manual_actions[action_index].clone();
+        return (None, Some(action));
     }
 
     fn update_resources_list(&mut self) {
@@ -196,7 +231,7 @@ impl App {
         self.table_states.action.items = Vec::new();
 
         for action in &self.game_state.global_actions {
-            self.table_states.action.items.push(action.name());
+            self.table_states.action.items.push(action.name().to_string());
         }
 
         let selected_item;
@@ -219,7 +254,7 @@ impl App {
         }
 
         for action in &selected_item.manual_actions {
-            self.table_states.action.items.push(action.name());
+            self.table_states.action.items.push(action.name().to_string());
         }
 
         self.table_states.action.reset_state();
@@ -304,7 +339,7 @@ impl App {
         };
 
         if action_index < self.game_state.global_actions.len() {
-            return self.game_state.global_actions[action_index].to_string();
+            return self.game_state.global_actions[action_index].description();
         }
         action_index -= self.game_state.global_actions.len();
 
@@ -326,7 +361,7 @@ impl App {
             }
         }
 
-        return item.manual_actions[action_index].to_string();
+        return item.manual_actions[action_index].description();
     }
 
     pub fn change_tab(&mut self, new_tab: Tab) {
@@ -357,45 +392,30 @@ impl App {
     }
 
     pub fn call_selected_action(&mut self) {
-        let action_index = self.table_states.action.state.selected();
-        let Some(mut action_index) = action_index else {
-            return;
-        };
+        let action = self.selected_action();
+        match action {
+            (None, None) => return,
+            (None, Some(action)) => {
+                let item;
+                match self.selected_item {
+                    Item::Resource => {
+                        item = self.selected_resource();
+                    }
+                    Item::Building => {
+                        item = self.selected_building();
+                    }
+                }
 
-        if action_index < self.game_state.global_actions.len() {
-            let action = self.game_state.global_actions[action_index].clone();
-
-            let info = use_global_action(&mut self.game_state, &action);
-            self.extra_info = info;
-            self.update_info_table();
-            return;
+                let info = action.activate(item.to_string(), &mut self.game_state, self.activation_amount);
+                self.extra_info = info;
+                self.update_info_table();
+            },
+            (Some(action), None) => {
+                let info = action.activate(&mut self.game_state, self.activation_amount);
+                self.extra_info = info;
+                self.update_info_table();
+            },
+            (Some(_), Some(_)) => return,
         }
-        action_index -= self.game_state.global_actions.len();
-
-        let item;
-
-        match self.selected_item {
-            Item::Resource => {
-                let Some(resource) = self.game_state.items.get(self.selected_resource()) else {
-                    return;
-                };
-
-                item = resource;
-            }
-            Item::Building => {
-                let Some(building) = self.game_state.items.get(self.selected_building()) else {
-                    return;
-                };
-
-                item = building;
-            }
-        }
-
-        let action = item.manual_actions[action_index].clone();
-        let item_name = item.name.clone();
-
-        let info = use_manual_action(item_name, &mut self.game_state, &action, self.activation_amount);
-        self.extra_info = info;
-        self.update_info_table();
     }
 }

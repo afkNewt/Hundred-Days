@@ -1,4 +1,4 @@
-use crate::app::{App, SelectionMode, Tab};
+use crate::{app::{App, SelectionMode, Tab, Item}, hundred_days::action::Information};
 
 use tui::{
     backend::Backend,
@@ -168,11 +168,59 @@ where
         .border_type(BorderType::Plain);
 
     let text = format!("{}\n\n{}", app.info, app.extra_info);
-
-    let paragraph = Paragraph::new(text)
-        .block(block)
+    let mut paragraph = Paragraph::new(text)
+        .block(block.clone())
         .wrap(Wrap { trim: true })
         .alignment(Alignment::Left);
+
+    let mut action_description = String::new();
+    if app.selected_tab == Tab::Actions && app.selection_mode == SelectionMode::Items {
+        let action_index = app.table_states.action.state.selected();
+        if let Some(mut action_index) = action_index {
+            if action_index < app.game_state.global_actions.len() {
+                let action = app.game_state.global_actions[action_index].clone();
+    
+                action_description = action.description();
+            } else {
+                action_index -= app.game_state.global_actions.len();
+
+                match app.selected_item {
+                    Item::Resource => {
+                        if let Some(resource) = app.game_state.items.get(app.selected_resource()) {
+                            action_description = resource.manual_actions[action_index].description();
+                        };
+                    }
+                    Item::Building => {
+                        if let Some(building) = app.game_state.items.get(app.selected_building()) {
+                            action_description = building.manual_actions[action_index].description();
+                        };
+                    }
+                }
+            }
+        };
+        // this should only have two parts
+        let split: Vec<&str> = app.info.split(&action_description).collect();
+        if split.len() == 2 {
+            let mut lines = Vec::new();
+
+            for line in split[0].split("\n") {
+                lines.push(Spans::from(Span::raw(line)));
+            }
+            lines.pop();
+            for line in action_description.split("\n") {
+                lines.push(Spans::from(Span::styled(line, HIGHLIGHT_STYLE)));
+            }
+            for line in split[1].split("\n") {
+                lines.push(Spans::from(Span::raw(line)));
+            }
+            lines.remove(lines.len() - split[1].split("\n").count());
+
+            paragraph = Paragraph::new(lines)
+                .block(block)
+                .wrap(Wrap { trim: true })
+                .alignment(Alignment::Left);
+        }
+    }
 
     f.render_widget(paragraph, area);
 }

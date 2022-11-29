@@ -1,6 +1,6 @@
+mod app;
 mod crossterm;
 mod hundred_days;
-mod app;
 mod ui;
 
 use crate::crossterm::run;
