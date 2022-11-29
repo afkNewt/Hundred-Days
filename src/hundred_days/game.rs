@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs};
 
 use serde::Deserialize;
 
-use super::{action::{global::GlobalAction, manual::ManualAction}, item::Item};
+use super::{action::{global::GlobalAction, manual::ManualAction, ItemAction}, item::Item};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct Game {
@@ -30,57 +30,28 @@ impl Game {
     }
 
     pub fn net_worth(&self) -> i32 {
-        let mut net_worth = self.currency;
+        // all items that can be will be turned into
+        // currency in this copy
+        let mut cash_game = self.clone();
 
-        for (_, item) in self.items.iter() {
-            let deconstruct: Vec<&HashMap<String, i32>> = item
-                .manual_actions
-                .iter()
-                .filter_map(|a| match a {
-                    ManualAction::Deconstruct { item_gain: price } => Some(price),
-                    _ => None,
-                })
-                .collect();
-
-            // Item can be deconstructed
-            if let Some(deconstruct) = deconstruct.first() {
-                for (item_name, amount) in *deconstruct {
-                    let Some(item) = self.items.get(item_name) else {
-                        continue;
-                    };
-
-                    let sell: Vec<&i32> = item
-                        .manual_actions
-                        .iter()
-                        .filter_map(|a| match a {
-                            ManualAction::Sell { sell_price: price } => Some(price),
-                            _ => None,
-                        })
-                        .collect();
-
-                    // Item recieved from deconstruction
-                    // can be sold
-                    if let Some(price) = sell.first() {
-                        net_worth += *price * amount;
-                    }
+        for (item_name, item) in cash_game.items.clone() {
+            for action in item.manual_actions.clone() {
+                match action {
+                    ManualAction::Sell { sell_price: _ } => {
+                        while cash_game.items.get(&item_name).unwrap().amount > 0 {
+                            action.activate(item_name.clone(), &mut cash_game, 1);
+                        }
+                    },
+                    ManualAction::Deconstruct { item_gain: _ } => {
+                        while cash_game.items.get(&item_name).unwrap().amount > 0 {
+                            action.activate(item_name.clone(), &mut cash_game, 1);
+                        }
+                    },
+                    _ => continue,
                 }
-            }
-
-            let sell: Vec<&i32> = item
-                .manual_actions
-                .iter()
-                .filter_map(|a| match a {
-                    ManualAction::Sell { sell_price: price } => Some(price),
-                    _ => None,
-                })
-                .collect();
-
-            // Item can be sold
-            if let Some(price) = sell.first() {
-                net_worth += *price * item.amount;
             }
         }
 
-        return net_worth;
+        return cash_game.currency;
     }
 }

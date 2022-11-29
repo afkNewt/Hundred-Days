@@ -53,18 +53,19 @@ impl ItemAction for DailyAction {
         match self {
             DailyAction::Produce { item_production } => {
                 let mut output = format!("{} produced:", item);
+                let item_amount = game.items.get(&item).unwrap().amount;
 
                 for (item_name, prod) in item_production {
-                    let Some(item) = game.items.get_mut(item_name) else {
+                    let Some(produced_item) = game.items.get_mut(item_name) else {
                         continue;
                     };
 
-                    item.amount += amount * prod;
+                    produced_item.amount += amount * prod * item_amount;
                     output = format!(
                         "{output}\n{}: {} ({})",
                         item_name,
-                        amount * prod,
-                        item.amount
+                        amount * prod * item_amount,
+                        produced_item.amount
                     );
                 }
 

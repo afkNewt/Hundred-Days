@@ -32,7 +32,7 @@ impl Information for ManualAction {
                     .map(|(name, amount)| format!("{name}: {amount}\n"))
                     .collect();
 
-                return format!("Build Cost:\n{}", cost);
+                return format!("Contsruction Cost:\n{}", cost);
             }
             ManualAction::Deconstruct { item_gain } => {
                 let gain: String = item_gain
@@ -40,7 +40,7 @@ impl Information for ManualAction {
                     .map(|(name, amount)| format!("{name}: {amount}\n"))
                     .collect();
 
-                return format!("Build Cost:\n{}", gain);
+                return format!("Deconstruction Recouperation:\n{}", gain);
             }
         }
     }

@@ -42,12 +42,4 @@ impl Item {
             self.name, self.amount, manual_action_descriptions, daily_action_descriptions
         );
     }
-
-    pub fn use_manual_action(&mut self, game: &mut Game, action: usize, amount: i32) {
-        self.manual_actions[action].activate(self.name.clone(), game, amount);
-    }
-
-    pub fn use_daily_action(&mut self, game: &mut Game, action: usize, amount: i32) {
-        self.daily_actions[action].activate(self.name.clone(), game, amount);
-    }
 }

@@ -327,41 +327,8 @@ impl App {
                 } else {
                     self.table_states.action.previous();
                 }
-
-                self.extra_info = self.get_selected_action_info();
             }
         }
-    }
-
-    fn get_selected_action_info(&self) -> String {
-        let Some(mut action_index) = self.table_states.action.state.selected() else {
-            return String::new();
-        };
-
-        if action_index < self.game_state.global_actions.len() {
-            return self.game_state.global_actions[action_index].description();
-        }
-        action_index -= self.game_state.global_actions.len();
-
-        let item;
-        match self.selected_item {
-            Item::Resource => {
-                let Some(resource) = self.game_state.items.get(self.selected_resource()) else {
-                    return String::new();
-                };
-
-                item = resource;
-            }
-            Item::Building => {
-                let Some(building) = self.game_state.items.get(self.selected_building()) else {
-                    return String::new();
-                };
-
-                item = building;
-            }
-        }
-
-        return item.manual_actions[action_index].description();
     }
 
     pub fn change_tab(&mut self, new_tab: Tab) {

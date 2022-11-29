@@ -215,6 +215,10 @@ where
             }
             lines.remove(lines.len() - split[1].split("\n").count());
 
+            for line in app.extra_info.split("\n") {
+                lines.push(Spans::from(Span::raw(line)));
+            }
+
             paragraph = Paragraph::new(lines)
                 .block(block)
                 .wrap(Wrap { trim: true })
