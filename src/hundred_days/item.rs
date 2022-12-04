@@ -1,9 +1,6 @@
 use serde::Deserialize;
 
-use super::{
-    action::{daily::DailyAction, manual::ManualAction, Information, ItemAction},
-    game::Game,
-};
+use super::action::{daily::DailyAction, manual::ManualAction, Information};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum ItemType {

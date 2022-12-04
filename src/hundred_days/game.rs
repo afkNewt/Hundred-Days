@@ -9,8 +9,6 @@ pub struct Game {
     pub starting_day: i32,
     pub current_day: i32,
 
-    pub black_market_days: Vec<i32>,
-
     pub industries: Vec<String>,
     pub global_actions: Vec<GlobalAction>,
 

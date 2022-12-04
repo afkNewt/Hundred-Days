@@ -7,7 +7,10 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io::{self}};
+use std::{
+    error::Error,
+    io::{self},
+};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -116,14 +119,18 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Char(' ') => {
                     app.alternate_selection_mode();
                 }
-                KeyCode::Tab => {
-                    match app.activation_amount {
-                        1 => app.activation_amount = 10,
-                        10 => app.activation_amount = 100,
-                        100 => app.activation_amount = 1,
-                        _ => app.activation_amount = 1,
-                    }
-                }
+                KeyCode::Tab => match app.activation_amount {
+                    1 => app.activation_amount = 10,
+                    10 => app.activation_amount = 100,
+                    100 => app.activation_amount = 1,
+                    _ => app.activation_amount = 1,
+                },
+                KeyCode::BackTab => match app.activation_amount {
+                    1 => app.activation_amount = 100,
+                    10 => app.activation_amount = 1,
+                    100 => app.activation_amount = 10,
+                    _ => app.activation_amount = 100,
+                },
                 KeyCode::Enter => {
                     if app.selected_tab != Tab::Actions {
                         app.change_tab(Tab::Actions);
