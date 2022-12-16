@@ -2,7 +2,10 @@ use std::{collections::HashMap, fs};
 
 use serde::Deserialize;
 
-use super::{action::{global::GlobalAction, manual::ManualAction, ItemAction}, item::Item};
+use super::{
+    action::{global::GlobalAction, manual::ManualAction},
+    item::Item,
+};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct Game {
@@ -39,12 +42,12 @@ impl Game {
                         while cash_game.items.get(&item_name).unwrap().amount > 0 {
                             action.activate(item_name.clone(), &mut cash_game, 1);
                         }
-                    },
+                    }
                     ManualAction::Deconstruct { item_gain: _ } => {
                         while cash_game.items.get(&item_name).unwrap().amount > 0 {
                             action.activate(item_name.clone(), &mut cash_game, 1);
                         }
-                    },
+                    }
                     _ => continue,
                 }
             }

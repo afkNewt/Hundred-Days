@@ -2,7 +2,7 @@ pub use serde::Deserialize;
 pub use std::{collections::HashMap, fs};
 use crate::hundred_days::game::Game;
 
-use super::{Information, ItemlessAction, ItemAction};
+use super::Information;
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum GlobalAction {
@@ -23,8 +23,8 @@ impl Information for GlobalAction {
     }
 }
 
-impl ItemlessAction for GlobalAction {
-    fn activate(&self, game: &mut Game, mut amount: i32) -> String {
+impl GlobalAction {
+    pub fn activate(&self, game: &mut Game, mut amount: i32) -> String {
         match self {
             GlobalAction::PassDay => {
                 let mut output = "".to_string();

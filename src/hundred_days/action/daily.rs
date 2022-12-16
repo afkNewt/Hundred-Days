@@ -2,7 +2,7 @@ use crate::hundred_days::game::Game;
 pub use serde::Deserialize;
 pub use std::{collections::HashMap, fs};
 
-use super::{Information, ItemAction};
+use super::Information;
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum DailyAction {
@@ -44,8 +44,8 @@ impl Information for DailyAction {
     }
 }
 
-impl ItemAction for DailyAction {
-    fn activate(&self, item: String, game: &mut Game, amount: i32) -> String {
+impl DailyAction {
+    pub fn activate(&self, item: String, game: &mut Game, amount: i32) -> String {
         if !game.items.contains_key(&item) {
             return String::new();
         };

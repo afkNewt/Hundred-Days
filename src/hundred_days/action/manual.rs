@@ -2,7 +2,7 @@ use crate::hundred_days::game::Game;
 pub use serde::Deserialize;
 pub use std::{collections::HashMap, fs};
 
-use super::{Information, ItemAction};
+use super::Information;
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum ManualAction {
@@ -46,8 +46,8 @@ impl Information for ManualAction {
     }
 }
 
-impl ItemAction for ManualAction {
-    fn activate(
+impl ManualAction {
+    pub fn activate(
         &self,
         item: String,
         game: &mut Game,

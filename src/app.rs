@@ -1,6 +1,6 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{game::Game, action::{ItemlessAction, ItemAction, Information}, item::ItemType};
+use crate::hundred_days::{game::Game, action::{Information, global::GlobalAction, manual::ManualAction}, item::ItemType};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -162,7 +162,7 @@ impl App {
         return resource_name;
     }
 
-    fn selected_action(&self) -> (Option<impl ItemlessAction>, Option<impl ItemAction>) {
+    fn selected_action(&self) -> (Option<GlobalAction>, Option<ManualAction>) {
         let action_index = self.table_states.action.state.selected();
         let Some(mut action_index) = action_index else {
             return (None, None);
