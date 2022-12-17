@@ -1,8 +1,4 @@
-pub use serde::Deserialize;
-pub use std::{collections::HashMap, fs};
-use crate::hundred_days::game::Game;
-
-use super::Information;
+use super::{Information, Deserialize, Game};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum GlobalAction {

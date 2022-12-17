@@ -1,4 +1,7 @@
-use crate::{app::{App, SelectionMode, Tab, Item}, hundred_days::action::Information};
+use crate::{
+    app::{App, Item, SelectionMode, Tab},
+    hundred_days::action::Information,
+};
 
 use tui::{
     backend::Backend,
@@ -179,20 +182,22 @@ where
         if let Some(mut action_index) = action_index {
             if action_index < app.game_state.global_actions.len() {
                 let action = app.game_state.global_actions[action_index].clone();
-    
+
                 action_description = action.description();
             } else {
                 action_index -= app.game_state.global_actions.len();
 
                 match app.selected_item {
                     Item::Resource => {
-                        if let Some(resource) = app.game_state.items.get(app.selected_resource()) {
-                            action_description = resource.manual_actions[action_index].description();
+                        if let Some(resource) = app.game_state.items.get(&app.selected_resource()) {
+                            action_description =
+                                resource.manual_actions[action_index].description();
                         };
                     }
                     Item::Building => {
-                        if let Some(building) = app.game_state.items.get(app.selected_building()) {
-                            action_description = building.manual_actions[action_index].description();
+                        if let Some(building) = app.game_state.items.get(&app.selected_building()) {
+                            action_description =
+                                building.manual_actions[action_index].description();
                         };
                     }
                 }

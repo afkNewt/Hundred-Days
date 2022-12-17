@@ -1,6 +1,10 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{game::Game, action::{Information, global::GlobalAction, manual::ManualAction}, item::ItemType};
+use crate::hundred_days::{
+    action::{global::GlobalAction, manual::ManualAction, Information},
+    game::Game,
+    item::ItemType,
+};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -134,32 +138,36 @@ impl App {
         return app;
     }
 
-    pub fn selected_building(&self) -> &str {
-        // gets index of selected building
-        let selected = self
+    pub fn selected_building(&self) -> String {
+        return self
             .table_states
             .building
-            .state
-            .selected()
-            .unwrap_or_default();
-        // gets name of selected building
-        let building_name = &self.table_states.building.items[selected];
-
-        return building_name;
+            .items
+            .get(
+                self.table_states
+                    .resource
+                    .state
+                    .selected()
+                    .unwrap_or_default(),
+            )
+            .unwrap_or(&String::new())
+            .to_owned();
     }
 
-    pub fn selected_resource(&self) -> &str {
-        // gets index of selected resource
-        let selected = self
+    pub fn selected_resource(&self) -> String {
+        return self
             .table_states
             .resource
-            .state
-            .selected()
-            .unwrap_or_default();
-        // gets name of selected resource
-        let resource_name = &self.table_states.resource.items[selected];
-
-        return resource_name;
+            .items
+            .get(
+                self.table_states
+                    .resource
+                    .state
+                    .selected()
+                    .unwrap_or_default(),
+            )
+            .unwrap_or(&String::new())
+            .to_owned();
     }
 
     fn selected_action(&self) -> (Option<GlobalAction>, Option<ManualAction>) {
@@ -168,24 +176,28 @@ impl App {
             return (None, None);
         };
 
+        // if its a global action
         if action_index < self.game_state.global_actions.len() {
-            let action = self.game_state.global_actions[action_index].clone();
-
-            return(Some(action), None);
+            return (
+                Some(self.game_state.global_actions[action_index].clone()),
+                None,
+            );
         }
+        // remove global actions
         action_index -= self.game_state.global_actions.len();
 
         let item;
+        // get the selected item
         match self.selected_item {
             Item::Resource => {
-                let Some(resource) = self.game_state.items.get(self.selected_resource()) else {
+                let Some(resource) = self.game_state.items.get(&self.selected_resource()) else {
                     return (None, None);
                 };
 
                 item = resource;
             }
             Item::Building => {
-                let Some(building) = self.game_state.items.get(self.selected_building()) else {
+                let Some(building) = self.game_state.items.get(&self.selected_building()) else {
                     return (None, None);
                 };
 
@@ -193,59 +205,68 @@ impl App {
             }
         }
 
-        let action = item.manual_actions[action_index].clone();
-        return (None, Some(action));
+        return (None, Some(item.manual_actions[action_index].clone()));
     }
 
     fn update_resources_list(&mut self) {
-        self.table_states.resource.items = Vec::new();
-
-        for (item_name, item) in &self.game_state.items {
-            if item.r#type != ItemType::Resource {
-                continue;
-            }
-            if item.industries.contains(&self.industry) {
-                self.table_states.resource.items.push(item_name.to_string());
-            }
-        }
+        self.table_states.resource.items = self
+            .game_state
+            .items
+            .iter()
+            .filter(|(_item_name, item)| {
+                if item.r#type == ItemType::Resource && item.industries.contains(&self.industry) {
+                    return true;
+                } else {
+                    return false;
+                }
+            })
+            .map(|(item_name, _)| {
+                return item_name.to_string();
+            })
+            .collect();
 
         self.table_states.resource.reset_state();
     }
 
     fn update_building_list(&mut self) {
-        self.table_states.building.items = Vec::new();
-
-        for (item_name, item) in &self.game_state.items {
-            if item.r#type != ItemType::Building {
-                continue;
-            }
-            if item.industries.contains(&self.industry) {
-                self.table_states.building.items.push(item_name.to_string());
-            }
-        }
+        self.table_states.building.items = self
+            .game_state
+            .items
+            .iter()
+            .filter(|(_item_name, item)| {
+                if item.r#type == ItemType::Building && item.industries.contains(&self.industry) {
+                    return true;
+                } else {
+                    return false;
+                }
+            })
+            .map(|(item_name, _)| {
+                return item_name.to_string();
+            })
+            .collect();
 
         self.table_states.building.reset_state();
     }
 
     fn update_actions_list(&mut self) {
-        self.table_states.action.items = Vec::new();
-
-        for action in &self.game_state.global_actions {
-            self.table_states.action.items.push(action.name().to_string());
-        }
+        self.table_states.action.items = self
+            .game_state
+            .global_actions
+            .iter()
+            .map(|action| return action.name().to_string())
+            .collect();
 
         let selected_item;
-
         match self.selected_item {
             Item::Resource => {
-                let Some(item) = self.game_state.items.get(self.selected_resource()) else {
+                let Some(item) = self.game_state.items.get(&self.selected_resource()) else {
                     return;
                 };
 
                 selected_item = item;
             }
             Item::Building => {
-                let Some(item) = self.game_state.items.get(self.selected_building()) else {
+                let Some(item) = self.game_state.items.get(&self.selected_building()) else {
                     return;
                 };
 
@@ -253,9 +274,13 @@ impl App {
             }
         }
 
-        for action in &selected_item.manual_actions {
-            self.table_states.action.items.push(action.name().to_string());
-        }
+        self.table_states.action.items.append(
+            &mut selected_item
+                .manual_actions
+                .iter()
+                .map(|action| action.name().to_string())
+                .collect::<Vec<String>>(),
+        );
 
         self.table_states.action.reset_state();
     }
@@ -265,14 +290,14 @@ impl App {
 
         match self.selected_item {
             Item::Resource => {
-                let Some(resource) = self.game_state.items.get(self.selected_resource()) else {
+                let Some(resource) = self.game_state.items.get(&self.selected_resource()) else {
                     return;
                 };
 
                 self.info = resource.information();
             }
             Item::Building => {
-                let Some(building) = self.game_state.items.get(self.selected_building()) else {
+                let Some(building) = self.game_state.items.get(&self.selected_building()) else {
                     return;
                 };
 
@@ -361,7 +386,6 @@ impl App {
     pub fn call_selected_action(&mut self) {
         let action = self.selected_action();
         match action {
-            (None, None) => return,
             (None, Some(action)) => {
                 let item;
                 match self.selected_item {
@@ -373,16 +397,20 @@ impl App {
                     }
                 }
 
-                let info = action.activate(item.to_string(), &mut self.game_state, self.activation_amount);
+                let info = action.activate(
+                    item.to_string(),
+                    &mut self.game_state,
+                    self.activation_amount,
+                );
                 self.extra_info = info;
                 self.update_info_table();
-            },
+            }
             (Some(action), None) => {
                 let info = action.activate(&mut self.game_state, self.activation_amount);
                 self.extra_info = info;
                 self.update_info_table();
-            },
-            (Some(_), Some(_)) => return,
+            }
+            _ => return,
         }
     }
 }
