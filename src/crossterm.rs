@@ -1,5 +1,6 @@
 use crate::{
-    app::{App, SelectionMode, Tab},
+    app::{App, SelectionMode, Table},
+    hundred_days::item::ItemType,
     ui::draw,
 };
 use crossterm::{
@@ -61,28 +62,28 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     return Ok(());
                 }
                 KeyCode::Left => {
-                    if app.selection_mode == SelectionMode::Tabs {
-                        match app.selected_tab {
-                            Tab::Actions => app.change_tab(Tab::Buildings),
-                            Tab::Buildings | Tab::Industry => app.change_tab(Tab::Resources),
+                    if app.selection_mode == SelectionMode::Table {
+                        match app.selected_table {
+                            Table::Actions => app.change_tab(Table::Buildings),
+                            Table::Buildings | Table::Industry => app.change_tab(Table::Resources),
                             _ => {}
                         }
                     }
                 }
                 KeyCode::Right => {
-                    if app.selection_mode == SelectionMode::Tabs {
-                        match app.selected_tab {
-                            Tab::Buildings | Tab::Industry => app.change_tab(Tab::Actions),
-                            Tab::Resources => app.change_tab(Tab::Buildings),
+                    if app.selection_mode == SelectionMode::Table {
+                        match app.selected_table {
+                            Table::Buildings | Table::Industry => app.change_tab(Table::Actions),
+                            Table::Resources => app.change_tab(Table::Buildings),
                             _ => {}
                         }
                     }
                 }
                 KeyCode::Up => {
-                    if app.selection_mode == SelectionMode::Tabs {
-                        match app.selected_tab {
-                            Tab::Buildings | Tab::Resources | Tab::Actions => {
-                                app.change_tab(Tab::Industry)
+                    if app.selection_mode == SelectionMode::Table {
+                        match app.selected_table {
+                            Table::Buildings | Table::Resources | Table::Actions => {
+                                app.change_tab(Table::Industry)
                             }
                             _ => {}
                         }
@@ -91,10 +92,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                 }
                 KeyCode::Down => {
-                    if app.selection_mode == SelectionMode::Tabs {
-                        match app.selected_tab {
-                            Tab::Industry | Tab::Actions | Tab::Resources => {
-                                app.change_tab(Tab::Buildings)
+                    if app.selection_mode == SelectionMode::Table {
+                        match app.selected_table {
+                            Table::Industry | Table::Actions | Table::Resources => {
+                                app.change_tab(Table::Buildings)
                             }
                             _ => {}
                         }
@@ -103,16 +104,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                 }
                 KeyCode::Backspace => {
-                    if app.selection_mode == SelectionMode::Tabs {
+                    if app.selection_mode == SelectionMode::Table {
                         app.alternate_selection_mode();
                     }
 
-                    match app.selected_item {
-                        crate::app::Item::Resource => {
-                            app.change_tab(Tab::Resources);
-                        }
-                        crate::app::Item::Building => {
-                            app.change_tab(Tab::Buildings);
+                    if let Some(item) = app.game_state.items.get(&app.selected_item) {
+                        match item.r#type {
+                            ItemType::Resource => app.change_tab(Table::Resources),
+                            ItemType::Building => app.change_tab(Table::Buildings),
                         }
                     }
                 }
@@ -132,10 +131,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     _ => app.activation_amount = 100,
                 },
                 KeyCode::Enter => {
-                    if app.selected_tab != Tab::Actions {
-                        app.change_tab(Tab::Actions);
+                    if app.selected_table != Table::Actions {
+                        app.change_tab(Table::Actions);
 
-                        if app.selection_mode == SelectionMode::Tabs {
+                        if app.selection_mode == SelectionMode::Table {
                             app.alternate_selection_mode();
                         }
                     } else {

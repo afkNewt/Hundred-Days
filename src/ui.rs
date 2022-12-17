@@ -1,8 +1,3 @@
-use crate::{
-    app::{App, Item, SelectionMode, Tab},
-    hundred_days::action::Information,
-};
-
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -10,6 +5,11 @@ use tui::{
     text::{Span, Spans},
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
     Frame,
+};
+
+use crate::{
+    app::{App, SelectionMode, Table},
+    hundred_days::action::Information,
 };
 
 const DEFAULT_STYLE: Style = Style {
@@ -177,8 +177,8 @@ where
         .alignment(Alignment::Left);
 
     let mut action_description = String::new();
-    if app.selected_tab == Tab::Actions && app.selection_mode == SelectionMode::Items {
-        let action_index = app.table_states.action.state.selected();
+    if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Table {
+        let action_index = app.action_table.state.selected();
         if let Some(mut action_index) = action_index {
             if action_index < app.game_state.global_actions.len() {
                 let action = app.game_state.global_actions[action_index].clone();
@@ -187,19 +187,8 @@ where
             } else {
                 action_index -= app.game_state.global_actions.len();
 
-                match app.selected_item {
-                    Item::Resource => {
-                        if let Some(resource) = app.game_state.items.get(&app.selected_resource()) {
-                            action_description =
-                                resource.manual_actions[action_index].description();
-                        };
-                    }
-                    Item::Building => {
-                        if let Some(building) = app.game_state.items.get(&app.selected_building()) {
-                            action_description =
-                                building.manual_actions[action_index].description();
-                        };
-                    }
+                if let Some(item) = app.game_state.items.get(&app.selected_item) {
+                    action_description = item.manual_actions[action_index].description();
                 }
             }
         };
@@ -241,7 +230,7 @@ where
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
-            if app.selected_tab == Tab::Resources && app.selection_mode == SelectionMode::Tabs {
+            if app.selected_table == Table::Resources && app.selection_mode == SelectionMode::Table {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -252,8 +241,7 @@ where
         .border_type(BorderType::Plain);
 
     let resources: Vec<ListItem> = app
-        .table_states
-        .resource
+        .resource_table
         .items
         .iter()
         .map(|res_name| {
@@ -271,14 +259,14 @@ where
     let resources = List::new(resources)
         .block(block)
         .highlight_style(
-            if app.selection_mode == SelectionMode::Items && app.selected_tab == Tab::Resources {
+            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Resources {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
             },
         )
         .highlight_symbol("> ");
-    f.render_stateful_widget(resources, area, &mut app.table_states.resource.state);
+    f.render_stateful_widget(resources, area, &mut app.resource_table.state);
 }
 
 fn draw_industries<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -288,7 +276,7 @@ where
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
-            if app.selected_tab == Tab::Industry && app.selection_mode == SelectionMode::Tabs {
+            if app.selected_table == Table::Industry && app.selection_mode == SelectionMode::Table {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -299,8 +287,7 @@ where
         .border_type(BorderType::Plain);
 
     let industries: Vec<ListItem> = app
-        .table_states
-        .industry
+        .industry_table
         .items
         .iter()
         .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.clone()))]))
@@ -309,14 +296,14 @@ where
     let industries = List::new(industries)
         .block(block)
         .highlight_style(
-            if app.selection_mode == SelectionMode::Items && app.selected_tab == Tab::Industry {
+            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Industry {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
             },
         )
         .highlight_symbol("> ");
-    f.render_stateful_widget(industries, area, &mut app.table_states.industry.state);
+    f.render_stateful_widget(industries, area, &mut app.industry_table.state);
 }
 
 fn draw_buildings<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -326,7 +313,7 @@ where
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
-            if app.selected_tab == Tab::Buildings && app.selection_mode == SelectionMode::Tabs {
+            if app.selected_table == Table::Buildings && app.selection_mode == SelectionMode::Table {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -337,8 +324,7 @@ where
         .border_type(BorderType::Plain);
 
     let buildings: Vec<ListItem> = app
-        .table_states
-        .building
+        .building_table
         .items
         .iter()
         .map(|build_name| {
@@ -356,14 +342,14 @@ where
     let buildings = List::new(buildings)
         .block(block)
         .highlight_style(
-            if app.selection_mode == SelectionMode::Items && app.selected_tab == Tab::Buildings {
+            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Buildings {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
             },
         )
         .highlight_symbol("> ");
-    f.render_stateful_widget(buildings, area, &mut app.table_states.building.state);
+    f.render_stateful_widget(buildings, area, &mut app.building_table.state);
 }
 
 fn draw_actions<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -373,7 +359,7 @@ where
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
-            if app.selected_tab == Tab::Actions && app.selection_mode == SelectionMode::Tabs {
+            if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Table {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -384,8 +370,7 @@ where
         .border_type(BorderType::Plain);
 
     let actions: Vec<ListItem> = app
-        .table_states
-        .action
+        .action_table
         .items
         .iter()
         .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.clone()))]))
@@ -395,12 +380,12 @@ where
         .block(block)
         .style(DEFAULT_STYLE)
         .highlight_style(
-            if app.selection_mode == SelectionMode::Items && app.selected_tab == Tab::Actions {
+            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Actions {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
             },
         )
         .highlight_symbol("> ");
-    f.render_stateful_widget(actions, area, &mut app.table_states.action.state);
+    f.render_stateful_widget(actions, area, &mut app.action_table.state);
 }
