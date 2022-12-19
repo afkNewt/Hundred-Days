@@ -177,7 +177,7 @@ where
         .alignment(Alignment::Left);
 
     let mut action_description = String::new();
-    if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Table {
+    if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Item {
         let action_index = app.action_table.state.selected();
         if let Some(mut action_index) = action_index {
             if action_index < app.game_state.global_actions.len() {

@@ -1,6 +1,6 @@
 use crate::hundred_days::game::Game;
 pub use std::{collections::HashMap, fs};
-pub use serde::Deserialize;
+use super::Deserialize;
 
 pub mod daily;
 pub mod global;

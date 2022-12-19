@@ -1,10 +1,9 @@
 use std::{collections::HashMap, fs};
 
-use serde::Deserialize;
-
 use super::{
     action::{global::GlobalAction, manual::ManualAction},
     item::Item,
+    Deserialize,
 };
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
