@@ -1,4 +1,4 @@
-use super::{Information, Deserialize, Game};
+use super::{Deserialize, Game, Information};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum GlobalAction {
@@ -32,12 +32,15 @@ impl GlobalAction {
                 // we can use clone, because we just want the action
                 for (item_name, item) in game.items.clone() {
                     for action in &item.daily_actions {
-                        output = format!("{output}{}\n\n", action.activate(item_name.clone(), game, amount));
+                        output = format!(
+                            "{output}{}\n\n",
+                            action.activate(item_name.clone(), game, amount)
+                        );
                     }
                 }
-    
+
                 game.current_day -= amount;
-    
+
                 return output;
             }
         }

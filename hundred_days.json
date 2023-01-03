@@ -14,7 +14,7 @@
     "Wood": {
       "name": "Wood",
       "amount": 100,
-      "type": "Resource",
+      "category": "Resource",
       "industries": [
         "None",
         "Logging"
@@ -36,7 +36,7 @@
     "Stone": {
       "name": "Stone",
       "amount": 100,
-      "type": "Resource",
+      "category": "Resource",
       "industries": [
         "None",
         "Mining"
@@ -58,7 +58,7 @@
     "Gems": {
       "name": "Gems",
       "amount": 0,
-      "type": "Resource",
+      "category": "Resource",
       "industries": [
         "None",
         "Mining"
@@ -80,7 +80,7 @@
     "Sawmill": {
       "name": "Sawmill",
       "amount": 1,
-      "type": "Building",
+      "category": "Building",
       "industries": [
         "None",
         "Logging"
@@ -116,7 +116,7 @@
     "Mine": {
       "name": "Mine",
       "amount": 1,
-      "type": "Building",
+      "category": "Building",
       "industries": [
         "None",
         "Mining"

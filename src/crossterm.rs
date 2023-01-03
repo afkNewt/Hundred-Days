@@ -1,6 +1,6 @@
 use crate::{
     app::{App, SelectionMode, Table},
-    hundred_days::item::ItemType,
+    hundred_days::item::ItemCategory,
     ui::draw,
 };
 use crossterm::{
@@ -8,10 +8,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{
-    error::Error,
-    io::{self},
-};
+use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -109,9 +106,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
 
                     if let Some(item) = app.game_state.items.get(&app.selected_item) {
-                        match item.r#type {
-                            ItemType::Resource => app.change_tab(Table::Resources),
-                            ItemType::Building => app.change_tab(Table::Buildings),
+                        match item.category {
+                            ItemCategory::Resource => app.change_tab(Table::Resources),
+                            ItemCategory::Building => app.change_tab(Table::Buildings),
                         }
                     }
                 }

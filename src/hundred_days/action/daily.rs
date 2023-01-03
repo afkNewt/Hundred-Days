@@ -1,4 +1,4 @@
-use super::{Information, Deserialize, HashMap, Game};
+use super::{Deserialize, Game, HashMap, Information};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum DailyAction {

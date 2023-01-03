@@ -1,7 +1,10 @@
-use super::{action::{daily::DailyAction, manual::ManualAction, Information}, Deserialize};
+use super::{
+    action::{daily::DailyAction, manual::ManualAction, Information},
+    Deserialize,
+};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
-pub enum ItemType {
+pub enum ItemCategory {
     Resource,
     Building,
 }
@@ -10,7 +13,7 @@ pub enum ItemType {
 pub struct Item {
     pub name: String,
     pub amount: i32,
-    pub r#type: ItemType,
+    pub category: ItemCategory,
     pub industries: Vec<String>,
     pub manual_actions: Vec<ManualAction>,
     pub daily_actions: Vec<DailyAction>,

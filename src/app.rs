@@ -3,7 +3,7 @@ use tui::widgets::ListState;
 use crate::hundred_days::{
     action::{global::GlobalAction, manual::ManualAction, Information},
     game::Game,
-    item::ItemType,
+    item::ItemCategory,
 };
 
 #[derive(Clone)]
@@ -108,7 +108,6 @@ impl App {
             resource_table: StatefulList::default(),
             building_table: StatefulList::default(),
             industry_table: {
-                
                 let mut ind = StatefulList::default();
                 ind.items = game.industries.clone();
                 ind
@@ -159,7 +158,9 @@ impl App {
             .items
             .iter()
             .filter(|(_item_name, item)| {
-                if item.r#type == ItemType::Resource && item.industries.contains(&self.industry) {
+                if item.category == ItemCategory::Resource
+                    && item.industries.contains(&self.industry)
+                {
                     return true;
                 } else {
                     return false;
@@ -179,7 +180,9 @@ impl App {
             .items
             .iter()
             .filter(|(_item_name, item)| {
-                if item.r#type == ItemType::Building && item.industries.contains(&self.industry) {
+                if item.category == ItemCategory::Building
+                    && item.industries.contains(&self.industry)
+                {
                     return true;
                 } else {
                     return false;
@@ -238,7 +241,9 @@ impl App {
                     self.resource_table.previous();
                 }
 
-                self.selected_item = self.resource_table.items[self.resource_table.state.selected().unwrap()].clone();
+                self.selected_item = self.resource_table.items
+                    [self.resource_table.state.selected().unwrap()]
+                .clone();
 
                 self.update_actions_list();
                 self.update_info_table();
@@ -250,7 +255,9 @@ impl App {
                     self.building_table.previous();
                 }
 
-                self.selected_item = self.building_table.items[self.building_table.state.selected().unwrap()].clone();
+                self.selected_item = self.building_table.items
+                    [self.building_table.state.selected().unwrap()]
+                .clone();
 
                 self.update_actions_list();
                 self.update_info_table();
@@ -289,9 +296,17 @@ impl App {
                 self.selection_mode = SelectionMode::Item;
 
                 match self.selected_table {
-                    Table::Resources => self.selected_item = self.resource_table.items[self.resource_table.state.selected().unwrap()].clone(),
-                    Table::Buildings => self.selected_item = self.building_table.items[self.building_table.state.selected().unwrap()].clone(),
-                    _ => {},
+                    Table::Resources => {
+                        self.selected_item = self.resource_table.items
+                            [self.resource_table.state.selected().unwrap()]
+                        .clone()
+                    }
+                    Table::Buildings => {
+                        self.selected_item = self.building_table.items
+                            [self.building_table.state.selected().unwrap()]
+                        .clone()
+                    }
+                    _ => {}
                 }
 
                 self.update_info_table();
