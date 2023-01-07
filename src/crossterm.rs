@@ -14,6 +14,20 @@ use tui::{
     Terminal,
 };
 
+enum Inputs {
+    Exit,
+    Left,
+    Right,
+    Up,
+    Down,
+    Back,
+    SwapSelection,
+    IncreaseActionActivation,
+    DecreaseActionActivation,
+    ActivateOrGoToActions,
+    PassDay,
+}
+
 pub fn run() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
@@ -46,99 +60,118 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
     loop {
         terminal.draw(|f| draw(f, &mut app))?;
 
-        if let Event::Key(key) = event::read()? {
-            if app.game_state.current_day < 0 {
-                if key.code == KeyCode::Char('q') {
-                    return Ok(());
-                }
-                continue;
-            }
+        let mut action = None;
 
-            match key.code {
-                KeyCode::Char('q') => {
-                    return Ok(());
+        if let Event::Key(key) = event::read()? {
+            action = match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => Some(Inputs::Exit),
+                KeyCode::Left | KeyCode::Char('a') => Some(Inputs::Left),
+                KeyCode::Right | KeyCode::Char('d') => Some(Inputs::Right),
+                KeyCode::Up | KeyCode::Char('w') => Some(Inputs::Up),
+                KeyCode::Down | KeyCode::Char('s') => Some(Inputs::Down),
+                KeyCode::Backspace => Some(Inputs::Back),
+                KeyCode::Char(' ') => Some(Inputs::SwapSelection),
+                KeyCode::Tab => Some(Inputs::IncreaseActionActivation),
+                KeyCode::BackTab => Some(Inputs::DecreaseActionActivation),
+                KeyCode::Enter => Some(Inputs::ActivateOrGoToActions),
+                KeyCode::Char('c') => Some(Inputs::PassDay),
+                _ => None,
+            };
+
+            if app.game_state.day < 0 {
+                action = None;
+                if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                    action = Some(Inputs::Exit);
                 }
-                KeyCode::Left => {
-                    if app.selection_mode == SelectionMode::Table {
-                        match app.selected_table {
-                            Table::Actions => app.change_tab(Table::Buildings),
-                            Table::Buildings | Table::Industry => app.change_tab(Table::Resources),
-                            _ => {}
-                        }
+            }
+        }
+
+        let Some(action) = action else {
+            continue;
+        };
+
+        match action {
+            Inputs::Exit => return Ok(()),
+            Inputs::Left => {
+                if app.selection_mode == SelectionMode::Table {
+                    match app.selected_table {
+                        Table::Actions => app.change_tab(Table::Buildings),
+                        Table::Buildings | Table::Industry => app.change_tab(Table::Resources),
+                        _ => {}
                     }
                 }
-                KeyCode::Right => {
-                    if app.selection_mode == SelectionMode::Table {
-                        match app.selected_table {
-                            Table::Buildings | Table::Industry => app.change_tab(Table::Actions),
-                            Table::Resources => app.change_tab(Table::Buildings),
-                            _ => {}
-                        }
+            }
+            Inputs::Right => {
+                if app.selection_mode == SelectionMode::Table {
+                    match app.selected_table {
+                        Table::Buildings | Table::Industry => app.change_tab(Table::Actions),
+                        Table::Resources => app.change_tab(Table::Buildings),
+                        _ => {}
                     }
                 }
-                KeyCode::Up => {
-                    if app.selection_mode == SelectionMode::Table {
-                        match app.selected_table {
-                            Table::Buildings | Table::Resources | Table::Actions => {
-                                app.change_tab(Table::Industry)
-                            }
-                            _ => {}
+            }
+            Inputs::Up => {
+                if app.selection_mode == SelectionMode::Table {
+                    match app.selected_table {
+                        Table::Buildings | Table::Resources | Table::Actions => {
+                            app.change_tab(Table::Industry)
                         }
-                    } else {
-                        app.navigate(false);
+                        _ => {}
+                    }
+                } else {
+                    app.navigate(false);
+                }
+            }
+            Inputs::Down => {
+                if app.selection_mode == SelectionMode::Table {
+                    match app.selected_table {
+                        Table::Industry | Table::Actions | Table::Resources => {
+                            app.change_tab(Table::Buildings)
+                        }
+                        _ => {}
+                    }
+                } else {
+                    app.navigate(true);
+                }
+            }
+            Inputs::Back => {
+                if app.selection_mode == SelectionMode::Table {
+                    app.alternate_selection_mode();
+                }
+
+                if let Some(item) = app.game_state.items.get(&app.selected_item) {
+                    match item.category {
+                        ItemCategory::Resource => app.change_tab(Table::Resources),
+                        ItemCategory::Building => app.change_tab(Table::Buildings),
                     }
                 }
-                KeyCode::Down => {
-                    if app.selection_mode == SelectionMode::Table {
-                        match app.selected_table {
-                            Table::Industry | Table::Actions | Table::Resources => {
-                                app.change_tab(Table::Buildings)
-                            }
-                            _ => {}
-                        }
-                    } else {
-                        app.navigate(true);
-                    }
-                }
-                KeyCode::Backspace => {
+            }
+            Inputs::SwapSelection => app.alternate_selection_mode(),
+            Inputs::IncreaseActionActivation => match app.activation_amount {
+                1 => app.activation_amount = 10,
+                10 => app.activation_amount = 100,
+                100 => app.activation_amount = 1,
+                _ => app.activation_amount = 1,
+            },
+            Inputs::DecreaseActionActivation => match app.activation_amount {
+                1 => app.activation_amount = 100,
+                10 => app.activation_amount = 1,
+                100 => app.activation_amount = 10,
+                _ => app.activation_amount = 100,
+            },
+            Inputs::ActivateOrGoToActions => {
+                if app.selected_table != Table::Actions {
+                    app.change_tab(Table::Actions);
+
                     if app.selection_mode == SelectionMode::Table {
                         app.alternate_selection_mode();
                     }
-
-                    if let Some(item) = app.game_state.items.get(&app.selected_item) {
-                        match item.category {
-                            ItemCategory::Resource => app.change_tab(Table::Resources),
-                            ItemCategory::Building => app.change_tab(Table::Buildings),
-                        }
-                    }
+                } else {
+                    app.call_selected_action();
                 }
-                KeyCode::Char(' ') => {
-                    app.alternate_selection_mode();
-                }
-                KeyCode::Tab => match app.activation_amount {
-                    1 => app.activation_amount = 10,
-                    10 => app.activation_amount = 100,
-                    100 => app.activation_amount = 1,
-                    _ => app.activation_amount = 1,
-                },
-                KeyCode::BackTab => match app.activation_amount {
-                    1 => app.activation_amount = 100,
-                    10 => app.activation_amount = 1,
-                    100 => app.activation_amount = 10,
-                    _ => app.activation_amount = 100,
-                },
-                KeyCode::Enter => {
-                    if app.selected_table != Table::Actions {
-                        app.change_tab(Table::Actions);
-
-                        if app.selection_mode == SelectionMode::Table {
-                            app.alternate_selection_mode();
-                        }
-                    } else {
-                        app.call_selected_action();
-                    }
-                }
-                _ => {}
+            }
+            Inputs::PassDay => {
+                app.game_state.pass_day(app.activation_amount);
             }
         }
     }

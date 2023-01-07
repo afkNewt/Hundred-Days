@@ -1,12 +1,11 @@
-use crate::hundred_days::game::Game;
-pub use std::{collections::HashMap, fs};
-use super::Deserialize;
+pub use super::game::GameState;
 
-pub mod daily;
-pub mod global;
-pub mod manual;
+pub mod active;
+pub mod passive;
 
-pub trait Information {
+pub trait Action {
     fn name(&self) -> &str;
     fn description(&self) -> String;
+    fn activate(&self, item_name: String, game: &mut GameState, amount: i32) -> String;
+    fn max_activate(&self, item_name: String, game: &mut GameState) -> i32;
 }

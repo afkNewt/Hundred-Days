@@ -1,154 +1,150 @@
 {
-  "starting_day": 100,
-  "current_day": 100,
-  "industries": [
-    "None",
-    "Mining",
-    "Logging"
-  ],
-  "global_actions": [
-    "PassDay"
-  ],
-  "currency": 100,
-  "items": {
-    "Wood": {
-      "name": "Wood",
-      "amount": 100,
-      "category": "Resource",
-      "industries": [
-        "None",
-        "Logging"
-      ],
-      "manual_actions": [
-        {
-          "Buy": {
-            "buy_price": 2
-          }
-        },
-        {
-          "Sell": {
-            "sell_price": 2
-          }
-        }
-      ],
-      "daily_actions": []
-    },
-    "Stone": {
-      "name": "Stone",
-      "amount": 100,
-      "category": "Resource",
-      "industries": [
-        "None",
-        "Mining"
-      ],
-      "manual_actions": [
-        {
-          "Buy": {
-            "buy_price": 1
-          }
-        },
-        {
-          "Sell": {
-            "sell_price": 1
-          }
-        }
-      ],
-      "daily_actions": []
-    },
-    "Gems": {
-      "name": "Gems",
-      "amount": 0,
-      "category": "Resource",
-      "industries": [
-        "None",
-        "Mining"
-      ],
-      "manual_actions": [
-        {
-          "Buy": {
-            "buy_price": 4
-          }
-        },
-        {
-          "Sell": {
-            "sell_price": 4
-          }
-        }
-      ],
-      "daily_actions": []
-    },
-    "Sawmill": {
-      "name": "Sawmill",
-      "amount": 1,
-      "category": "Building",
-      "industries": [
-        "None",
-        "Logging"
-      ],
-      "manual_actions": [
-        {
-          "Construct": {
-            "build_cost": {
-              "Wood": 15,
-              "Stone": 30
+    "day": 100,
+    "currency": 100,
+    "industries": [
+      "None",
+      "Mining",
+      "Logging"
+    ],
+    "items": {
+      "Wood": {
+        "name": "Wood",
+        "amount": 100,
+        "category": "Resource",
+        "industries": [
+          "None",
+          "Logging"
+        ],
+        "actions_active": [
+          {
+            "Buy": {
+              "buy_price": 2
+            }
+          },
+          {
+            "Sell": {
+              "sell_price": 2
             }
           }
-        },
-        {
-          "Deconstruct": {
-            "item_gain": {
-              "Wood": 5,
-              "Stone": 15
+        ],
+        "actions_passive": []
+      },
+      "Stone": {
+        "name": "Stone",
+        "amount": 100,
+        "category": "Resource",
+        "industries": [
+          "None",
+          "Mining"
+        ],
+        "actions_active": [
+          {
+            "Buy": {
+              "buy_price": 1
+            }
+          },
+          {
+            "Sell": {
+              "sell_price": 1
             }
           }
-        }
-      ],
-      "daily_actions": [
-        {
-          "Produce": {
-            "item_production": {
-              "Wood": 3
+        ],
+        "actions_passive": []
+      },
+      "Gems": {
+        "name": "Gems",
+        "amount": 0,
+        "category": "Resource",
+        "industries": [
+          "None",
+          "Mining"
+        ],
+        "actions_active": [
+          {
+            "Buy": {
+              "buy_price": 4
+            }
+          },
+          {
+            "Sell": {
+              "sell_price": 4
             }
           }
-        }
-      ]
-    },
-    "Mine": {
-      "name": "Mine",
-      "amount": 1,
-      "category": "Building",
-      "industries": [
-        "None",
-        "Mining"
-      ],
-      "manual_actions": [
-        {
-          "Construct": {
-            "build_cost": {
-              "Wood": 30,
-              "Stone": 15
+        ],
+        "actions_passive": []
+      },
+      "Sawmill": {
+        "name": "Sawmill",
+        "amount": 1,
+        "category": "Building",
+        "industries": [
+          "None",
+          "Logging"
+        ],
+        "actions_active": [
+          {
+            "Construct": {
+              "build_cost": {
+                "Wood": 15,
+                "Stone": 30
+              }
+            }
+          },
+          {
+            "Deconstruct": {
+              "item_gain": {
+                "Wood": 5,
+                "Stone": 15
+              }
             }
           }
-        },
-        {
-          "Deconstruct": {
-            "item_gain": {
-              "Wood": 15,
-              "Stone": 5
+        ],
+        "actions_passive": [
+          {
+            "Produce": {
+              "item_production": {
+                "Wood": 3
+              }
             }
           }
-        }
-      ],
-      "daily_actions": [
-        {
-          "Produce": {
-            "item_production": {
-              "Stone": 2,
-              "Gems": 1
+        ]
+      },
+      "Mine": {
+        "name": "Mine",
+        "amount": 1,
+        "category": "Building",
+        "industries": [
+          "None",
+          "Mining"
+        ],
+        "actions_active": [
+          {
+            "Construct": {
+              "build_cost": {
+                "Wood": 30,
+                "Stone": 15
+              }
+            }
+          },
+          {
+            "Deconstruct": {
+              "item_gain": {
+                "Wood": 15,
+                "Stone": 5
+              }
             }
           }
-        }
-      ]
+        ],
+        "actions_passive": [
+          {
+            "Produce": {
+              "item_production": {
+                "Stone": 2,
+                "Gems": 1
+              }
+            }
+          }
+        ]
+      }
     }
   }
-}

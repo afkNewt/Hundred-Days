@@ -8,8 +8,7 @@ use tui::{
 };
 
 use crate::{
-    app::{App, SelectionMode, Table},
-    hundred_days::action::Information,
+    app::{App, SelectionMode, Table}, hundred_days::action::Action,
 };
 
 const DEFAULT_STYLE: Style = Style {
@@ -27,7 +26,7 @@ const HIGHLIGHT_STYLE: Style = Style {
 };
 
 pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    if app.game_state.current_day < 0 {
+    if app.game_state.day < 0 {
         draw_end_screen(f, app);
     } else {
         draw_game_screen(f, app);
@@ -41,7 +40,7 @@ pub fn draw_end_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
-        .title(format!(" In {} days ", app.game_state.current_day))
+        .title(format!(" In {} days ", app.game_state.day))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
     f.render_widget(block, size);
@@ -56,7 +55,7 @@ pub fn draw_game_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
-        .title(format!(" In {} days ", app.game_state.current_day))
+        .title(format!(" In {} days ", app.game_state.day))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
     f.render_widget(block, size);
@@ -130,9 +129,8 @@ where
     let text = vec![
         Spans::from(Span::raw("Congratulations!")),
         Spans::from(Span::raw(format!(
-            "You earned {} points over {} Days",
+            "You earned {} points!",
             app.game_state.net_worth(),
-            app.game_state.starting_day
         ))),
         Spans::from(Span::raw("Press q to exit")),
     ];
@@ -179,17 +177,9 @@ where
     let mut action_description = String::new();
     if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Item {
         let action_index = app.action_table.state.selected();
-        if let Some(mut action_index) = action_index {
-            if action_index < app.game_state.global_actions.len() {
-                let action = app.game_state.global_actions[action_index].clone();
-
-                action_description = action.description();
-            } else {
-                action_index -= app.game_state.global_actions.len();
-
-                if let Some(item) = app.game_state.items.get(&app.selected_item) {
-                    action_description = item.manual_actions[action_index].description();
-                }
+        if let Some(action_index) = action_index {
+            if let Some(item) = app.game_state.items.get(&app.selected_item) {
+                action_description = item.actions_active[action_index].description()
             }
         };
         // this should only have two parts

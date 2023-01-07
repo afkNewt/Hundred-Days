@@ -1,10 +1,6 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{
-    action::{global::GlobalAction, manual::ManualAction, Information},
-    game::Game,
-    item::ItemCategory,
-};
+use crate::hundred_days::{action::{GameState, active::Active, Action}, item::ItemCategory};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -97,12 +93,12 @@ pub struct App {
     pub selected_item: String,
     pub selection_mode: SelectionMode,
 
-    pub game_state: Game,
+    pub game_state: GameState,
 }
 
 impl App {
     pub fn new() -> App {
-        let game = Game::generate_from_json();
+        let game = GameState::generate_from_json();
 
         let mut app = App {
             resource_table: StatefulList::default(),
@@ -130,26 +126,16 @@ impl App {
         return app;
     }
 
-    fn selected_action(&self) -> (Option<GlobalAction>, Option<ManualAction>) {
-        let Some(mut action_index) = self.action_table.state.selected() else {
-            return (None, None);
+    fn selected_action(&self) -> Option<Active> {
+        let Some(action_index) = self.action_table.state.selected() else {
+            return None;
         };
-
-        // if its a global action
-        if action_index < self.game_state.global_actions.len() {
-            return (
-                Some(self.game_state.global_actions[action_index].clone()),
-                None,
-            );
-        }
-        // remove global actions
-        action_index -= self.game_state.global_actions.len();
 
         let Some(item) = self.game_state.items.get(&self.selected_item) else {
-            return (None, None);
+            return None;
         };
 
-        return (None, Some(item.manual_actions[action_index].clone()));
+        return Some(item.actions_active[action_index].clone());
     }
 
     fn update_resources_list(&mut self) {
@@ -197,24 +183,15 @@ impl App {
     }
 
     fn update_actions_list(&mut self) {
-        self.action_table.items = self
-            .game_state
-            .global_actions
-            .iter()
-            .map(|action| return action.name().to_string())
-            .collect();
-
         let Some(item) = self.game_state.items.get(&self.selected_item) else {
             return;
         };
 
-        self.action_table.items.append(
-            &mut item
-                .manual_actions
+        self.action_table.items = item
+                .actions_active
                 .iter()
                 .map(|action| action.name().to_string())
-                .collect::<Vec<String>>(),
-        );
+                .collect::<Vec<String>>();
 
         self.action_table.reset_state();
     }
@@ -319,23 +296,16 @@ impl App {
     }
 
     pub fn call_selected_action(&mut self) {
-        let action = self.selected_action();
-        match action {
-            (None, Some(action)) => {
-                let info = action.activate(
-                    self.selected_item.clone(),
-                    &mut self.game_state,
-                    self.activation_amount,
-                );
-                self.extra_info = info;
-                self.update_info_table();
-            }
-            (Some(action), None) => {
-                let info = action.activate(&mut self.game_state, self.activation_amount);
-                self.extra_info = info;
-                self.update_info_table();
-            }
-            _ => return,
-        }
+        let Some(action) = self.selected_action() else {
+            self.extra_info = "Could not find action".to_string();
+            return;
+        };
+
+        self.extra_info = action.activate(
+            self.selected_item.clone(),
+            &mut self.game_state,
+            self.activation_amount,
+        );
+        self.update_info_table();
     }
 }
