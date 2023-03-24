@@ -1,6 +1,9 @@
 use tui::widgets::ListState;
 
-use crate::hundred_days::{action::{GameState, active::Active, Action}, item::ItemCategory};
+use crate::hundred_days::{
+    action::{active::Active, Action, GameState},
+    item::ItemCategory,
+};
 
 #[derive(Clone)]
 pub struct StatefulList {
@@ -188,10 +191,10 @@ impl App {
         };
 
         self.action_table.items = item
-                .actions_active
-                .iter()
-                .map(|action| action.name().to_string())
-                .collect::<Vec<String>>();
+            .actions_active
+            .iter()
+            .map(|action| action.name().to_string())
+            .collect::<Vec<String>>();
 
         self.action_table.reset_state();
     }

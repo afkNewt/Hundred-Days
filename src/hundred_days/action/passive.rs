@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use serde::Deserialize;
+use std::collections::HashMap;
 
-use super::{GameState, Action};
+use super::{Action, GameState};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum Passive {
@@ -24,20 +24,22 @@ impl Action for Passive {
     fn description(&self) -> String {
         match self {
             Passive::Produce { item_production } => {
-                let produce: String = item_production
-                    .iter()
-                    .map(|(name, amount)| format!("{name}: {amount}\n"))
-                    .collect();
-
-                return format!("Produces daily:\n{}", produce);
+                format!(
+                    "Produces daily:\n{}",
+                    item_production
+                        .iter()
+                        .map(|(name, amount)| format!("{name}: {amount}\n"))
+                        .collect::<String>()
+                )
             }
             Passive::Reduce { item_reduction } => {
-                let reduce: String = item_reduction
-                    .iter()
-                    .map(|(name, amount)| format!("{name}: {amount}\n"))
-                    .collect();
-
-                return format!("Reduces daily:\n{}", reduce);
+                format!(
+                    "Reduces daily:\n{}",
+                    item_reduction
+                        .iter()
+                        .map(|(name, amount)| format!("{name}: {amount}\n"))
+                        .collect::<String>()
+                )
             }
         }
     }
@@ -66,7 +68,7 @@ impl Action for Passive {
                 let mut reduction_string = String::new();
                 for (name, reduction) in item_reduction {
                     game.items.get_mut(name).unwrap().amount -= reduction * amount;
-                    reduction_string = format!("{reduction_string}\n{name}: {reduction}")
+                    reduction_string = format!("{reduction_string}\n{name}: {reduction}");
                 }
 
                 return format!("Reduced:{reduction_string}");

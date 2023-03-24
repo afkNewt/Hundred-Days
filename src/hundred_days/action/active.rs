@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use serde::Deserialize;
+use std::collections::HashMap;
 
-use super::{GameState, Action};
+use super::{Action, GameState};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum Active {
@@ -26,20 +26,22 @@ impl Action for Active {
             Active::Buy { buy_price } => format!("Buy Price: {buy_price}"),
             Active::Sell { sell_price } => format!("Sell Price: {sell_price}"),
             Active::Construct { build_cost } => {
-                let cost: String = build_cost
-                    .iter()
-                    .map(|(name, amount)| format!("{name}: {amount}\n"))
-                    .collect();
-
-                format!("Construction Cost:\n{cost}")
+                format!(
+                    "Construction Cost:\n{}",
+                    build_cost
+                        .iter()
+                        .map(|(name, amount)| format!("{name}: {amount}\n"))
+                        .collect::<String>()
+                )
             }
             Active::Deconstruct { item_gain } => {
-                let gain: String = item_gain
-                    .iter()
-                    .map(|(name, amount)| format!("{name}: {amount}\n"))
-                    .collect();
-
-                format!("Deconstruction Recouperation:\n{gain}")
+                format!(
+                    "Deconstruction Recouperation:\n{}",
+                    item_gain
+                        .iter()
+                        .map(|(name, amount)| format!("{name}: {amount}\n"))
+                        .collect::<String>()
+                )
             }
         }
     }
