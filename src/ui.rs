@@ -1,14 +1,15 @@
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
 use crate::{
-    app::{App, SelectionMode, Table}, hundred_days::action::Action,
+    app::{App, SelectionMode, Table},
+    hundred_days::action::Action,
 };
 
 const DEFAULT_STYLE: Style = Style {
@@ -16,6 +17,7 @@ const DEFAULT_STYLE: Style = Style {
     bg: None,
     add_modifier: Modifier::empty(),
     sub_modifier: Modifier::empty(),
+    underline_color: None,
 };
 
 const HIGHLIGHT_STYLE: Style = Style {
@@ -23,6 +25,7 @@ const HIGHLIGHT_STYLE: Style = Style {
     bg: None,
     add_modifier: Modifier::BOLD,
     sub_modifier: Modifier::UNDERLINED,
+    underline_color: None,
 };
 
 pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -127,12 +130,12 @@ where
         .border_type(BorderType::Plain);
 
     let text = vec![
-        Spans::from(Span::raw("Congratulations!")),
-        Spans::from(Span::raw(format!(
+        Line::from(Span::raw("Congratulations!")),
+        Line::from(Span::raw(format!(
             "You earned {} points!",
             app.game_state.net_worth(),
         ))),
-        Spans::from(Span::raw("Press q to exit")),
+        Line::from(Span::raw("Press q to exit")),
     ];
 
     let stats_block = Paragraph::new(text)
@@ -188,19 +191,19 @@ where
             let mut lines = Vec::new();
 
             for line in split[0].split("\n") {
-                lines.push(Spans::from(Span::raw(line)));
+                lines.push(Line::from(Span::raw(line)));
             }
             lines.pop();
             for line in action_description.split("\n") {
-                lines.push(Spans::from(Span::styled(line, HIGHLIGHT_STYLE)));
+                lines.push(Line::from(Span::styled(line, HIGHLIGHT_STYLE)));
             }
             for line in split[1].split("\n") {
-                lines.push(Spans::from(Span::raw(line)));
+                lines.push(Line::from(Span::raw(line)));
             }
             lines.remove(lines.len() - split[1].split("\n").count());
 
             for line in app.extra_info.split("\n") {
-                lines.push(Spans::from(Span::raw(line)));
+                lines.push(Line::from(Span::raw(line)));
             }
 
             paragraph = Paragraph::new(lines)
@@ -220,7 +223,8 @@ where
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
-            if app.selected_table == Table::Resources && app.selection_mode == SelectionMode::Table {
+            if app.selected_table == Table::Resources && app.selection_mode == SelectionMode::Table
+            {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -237,7 +241,7 @@ where
         .map(|res_name| {
             let res_amount = app.game_state.items.get(res_name).unwrap().amount;
             let char_count = res_name.chars().count();
-            let lines = vec![Spans::from(format!(
+            let lines = vec![Line::from(format!(
                 "{res_name}{:>1$.2}",
                 res_amount,
                 area.width as usize - char_count - 5
@@ -280,7 +284,7 @@ where
         .industry_table
         .items
         .iter()
-        .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.clone()))]))
+        .map(|i| ListItem::new(vec![Line::from(Span::raw(i.clone()))]))
         .collect();
 
     let industries = List::new(industries)
@@ -303,7 +307,8 @@ where
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
-            if app.selected_table == Table::Buildings && app.selection_mode == SelectionMode::Table {
+            if app.selected_table == Table::Buildings && app.selection_mode == SelectionMode::Table
+            {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -320,7 +325,7 @@ where
         .map(|build_name| {
             let build_amount = app.game_state.items.get(build_name).unwrap().amount;
             let char_count = build_name.chars().count();
-            let lines = vec![Spans::from(format!(
+            let lines = vec![Line::from(format!(
                 "{build_name}{:>1$.2}",
                 build_amount,
                 area.width as usize - char_count - 5
@@ -363,7 +368,7 @@ where
         .action_table
         .items
         .iter()
-        .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.clone()))]))
+        .map(|i| ListItem::new(vec![Line::from(Span::raw(i.clone()))]))
         .collect();
 
     let actions = List::new(actions)
