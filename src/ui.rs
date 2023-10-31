@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -28,7 +27,7 @@ const HIGHLIGHT_STYLE: Style = Style {
     underline_color: None,
 };
 
-pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn draw(f: &mut Frame, app: &mut App) {
     if app.game_state.day < 0 {
         draw_end_screen(f, app);
     } else {
@@ -36,7 +35,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-pub fn draw_end_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn draw_end_screen(f: &mut Frame, app: &mut App) {
     let size = f.size();
 
     // Surrounding Block
@@ -51,7 +50,7 @@ pub fn draw_end_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     draw_game_ended_stats(f, app, size);
 }
 
-pub fn draw_game_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn draw_game_screen(f: &mut Frame, app: &mut App) {
     let size = f.size();
 
     // Surrounding Block
@@ -119,10 +118,7 @@ pub fn draw_game_screen<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Fourth Column
 }
 
-fn draw_game_ended_stats<B>(f: &mut Frame<B>, app: &App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_game_ended_stats(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
@@ -145,10 +141,7 @@ where
     f.render_widget(stats_block, area);
 }
 
-fn draw_cash<B>(f: &mut Frame<B>, app: &App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_cash(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
@@ -160,10 +153,7 @@ where
     f.render_widget(cash_block, area);
 }
 
-fn draw_info<B>(f: &mut Frame<B>, app: &App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_info(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
         .borders(Borders::ALL)
@@ -216,10 +206,7 @@ where
     f.render_widget(paragraph, area);
 }
 
-fn draw_resources<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_resources(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
@@ -263,10 +250,7 @@ where
     f.render_stateful_widget(resources, area, &mut app.resource_table.state);
 }
 
-fn draw_industries<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_industries(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
@@ -300,10 +284,7 @@ where
     f.render_stateful_widget(industries, area, &mut app.industry_table.state);
 }
 
-fn draw_buildings<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_buildings(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
@@ -347,10 +328,7 @@ where
     f.render_stateful_widget(buildings, area, &mut app.building_table.state);
 }
 
-fn draw_actions<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
-where
-    B: Backend,
-{
+fn draw_actions(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(
