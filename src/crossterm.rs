@@ -96,7 +96,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 if app.selection_mode == SelectionMode::Table {
                     match app.selected_table {
                         Table::Actions => app.change_tab(Table::Buildings),
-                        Table::Buildings | Table::Industry => app.change_tab(Table::Resources),
+                        Table::Buildings => app.change_tab(Table::Resources),
                         _ => {}
                     }
                 }
@@ -104,33 +104,19 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
             Inputs::Right => {
                 if app.selection_mode == SelectionMode::Table {
                     match app.selected_table {
-                        Table::Buildings | Table::Industry => app.change_tab(Table::Actions),
+                        Table::Buildings => app.change_tab(Table::Actions),
                         Table::Resources => app.change_tab(Table::Buildings),
                         _ => {}
                     }
                 }
             }
             Inputs::Up => {
-                if app.selection_mode == SelectionMode::Table {
-                    match app.selected_table {
-                        Table::Buildings | Table::Resources | Table::Actions => {
-                            app.change_tab(Table::Industry)
-                        }
-                        _ => {}
-                    }
-                } else {
+                if app.selection_mode == SelectionMode::Item {
                     app.navigate(false);
                 }
             }
             Inputs::Down => {
-                if app.selection_mode == SelectionMode::Table {
-                    match app.selected_table {
-                        Table::Industry | Table::Actions | Table::Resources => {
-                            app.change_tab(Table::Buildings)
-                        }
-                        _ => {}
-                    }
-                } else {
+                if app.selection_mode == SelectionMode::Item {
                     app.navigate(true);
                 }
             }

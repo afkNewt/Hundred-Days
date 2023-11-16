@@ -20,22 +20,6 @@ pub struct Item {
 
 impl Item {
     pub fn information(&self) -> String {
-        format!(
-            "Name: {}\nAmount: {}\nIndustries: {}\n\n{}{}",
-            self.name,
-            self.amount,
-            self.industries
-                .iter()
-                .map(|i| format!("\n{i}"))
-                .collect::<String>(),
-            self.actions_active
-                .iter()
-                .map(|a| format!("{}\n", a.description()))
-                .collect::<String>(),
-            self.actions_passive
-                .iter()
-                .map(|a| format!("{}\n", a.description()))
-                .collect::<String>(),
-        )
+        format!("Name: {}\nAmount: {}\n\n", self.name, self.amount)
     }
 }

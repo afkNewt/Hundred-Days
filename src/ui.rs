@@ -1,11 +1,13 @@
+use ratatui::widgets::ListState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Tabs, Wrap},
     Frame,
 };
 
+use crate::hundred_days::item::ItemCategory;
 use crate::{
     app::{App, SelectionMode, Table},
     hundred_days::action::Action,
@@ -62,60 +64,42 @@ pub fn draw_game_screen(f: &mut Frame, app: &mut App) {
         .border_type(BorderType::Plain);
     f.render_widget(block, size);
 
-    // Horizontal Chunks
-    let chunks = Layout::default()
+    let columns = Layout::default()
         .direction(Direction::Horizontal)
         .margin(1)
-        .constraints(
-            [
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-            ]
-            .as_ref(),
-        )
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
         .split(f.size());
 
-    // First Column
-    let first_column = Layout::default()
+    let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Percentage(100)].as_ref())
-        .split(chunks[0]);
+        // .margin(1)
+        .constraints([
+            Constraint::Min(3),
+            Constraint::default(),
+            Constraint::Min(5),
+        ])
+        .split(columns[0]);
 
-    draw_cash(f, &app, first_column[0]);
-    draw_resources(f, app, first_column[1]);
-    // First Column
+    let cash_char_count = (app.game_state.currency.checked_ilog10().unwrap_or(0) + 6) as u16;
+    let top_row = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::default(), Constraint::Min(cash_char_count)])
+        .split(rows[0]);
 
-    let industry_len: u16 = app
-        .game_state
-        .industries
-        .len()
-        .try_into()
-        .unwrap_or_default();
-    // Second Column
-    let second_column = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length(industry_len + 2),
-                Constraint::Percentage(100),
-            ]
-            .as_ref(),
-        )
-        .split(chunks[1]);
+    let middle_row = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(rows[1]);
 
-    draw_industries(f, app, second_column[0]);
-    draw_buildings(f, app, second_column[1]);
-    // Second Column
+    draw_tabs(f, app, top_row[0]);
+    draw_cash(f, app, top_row[1]);
 
-    // Third Column
-    draw_actions(f, app, chunks[2]);
-    // Third Column
+    draw_resources(f, app, middle_row[0]);
+    draw_buildings(f, app, middle_row[1]);
 
-    // Fourth Column
-    draw_info(f, &app, chunks[3]);
-    // Fourth Column
+    draw_history(f, app, rows[2]);
+
+    draw_actions(f, app, columns[1]);
 }
 
 fn draw_game_ended_stats(f: &mut Frame, app: &App, area: Rect) {
@@ -141,6 +125,23 @@ fn draw_game_ended_stats(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(stats_block, area);
 }
 
+fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
+    let titles = vec!["Main Game", "Night Market"];
+
+    let block = Block::default()
+        .style(DEFAULT_STYLE)
+        .borders(Borders::ALL)
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Plain);
+
+    let tabs = Tabs::new(titles)
+        .block(block)
+        .highlight_style(HIGHLIGHT_STYLE)
+        .select(0);
+
+    f.render_widget(tabs, area);
+}
+
 fn draw_cash(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .style(DEFAULT_STYLE)
@@ -153,57 +154,86 @@ fn draw_cash(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(cash_block, area);
 }
 
-fn draw_info(f: &mut Frame, app: &App, area: Rect) {
+fn draw_actions(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
-        .style(DEFAULT_STYLE)
+        .border_style(
+            if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Table {
+                HIGHLIGHT_STYLE
+            } else {
+                DEFAULT_STYLE
+            },
+        )
         .borders(Borders::ALL)
-        .title(" Information ")
+        .title(" Actions ")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
 
-    let text = format!("{}\n\n{}", app.info, app.extra_info);
-    let mut paragraph = Paragraph::new(text)
-        .block(block.clone())
-        .wrap(Wrap { trim: true })
-        .alignment(Alignment::Left);
+    let action_block = Block::default()
+        .style(DEFAULT_STYLE)
+        .borders(Borders::ALL)
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Plain);
 
-    let mut action_description = String::new();
-    if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Item {
-        let action_index = app.action_table.state.selected();
-        if let Some(action_index) = action_index {
-            if let Some(item) = app.game_state.items.get(&app.selected_item) {
-                action_description = item.actions_active[action_index].description()
-            }
-        };
-        // this should only have two parts
-        let split: Vec<&str> = app.info.split(&action_description).collect();
-        if split.len() == 2 {
-            let mut lines = Vec::new();
+    f.render_widget(block, area);
+    let selected_item_name = app.selected_item.clone();
+    let Some(selected_item) = app.game_state.items.get(&selected_item_name) else {
+        return;
+    };
 
-            for line in split[0].split("\n") {
-                lines.push(Line::from(Span::raw(line)));
-            }
-            lines.pop();
-            for line in action_description.split("\n") {
-                lines.push(Line::from(Span::styled(line, HIGHLIGHT_STYLE)));
-            }
-            for line in split[1].split("\n") {
-                lines.push(Line::from(Span::raw(line)));
-            }
-            lines.remove(lines.len() - split[1].split("\n").count());
+    let mut constraints = selected_item
+        .actions_active
+        .iter()
+        .map(|a| Constraint::Min(a.description().lines().count() as u16 + 2))
+        .collect::<Vec<Constraint>>();
 
-            for line in app.extra_info.split("\n") {
-                lines.push(Line::from(Span::raw(line)));
-            }
+    // dummy constraint active and passive actions
+    // are split up
+    constraints.push(Constraint::default());
 
-            paragraph = Paragraph::new(lines)
-                .block(block)
-                .wrap(Wrap { trim: true })
-                .alignment(Alignment::Left);
-        }
+    constraints.append(
+        &mut selected_item
+            .actions_passive
+            .iter()
+            .map(|p| Constraint::Min(p.description().lines().count() as u16 + 2))
+            .collect::<Vec<Constraint>>(),
+    );
+
+    let action_blocks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(constraints)
+        .margin(1)
+        .split(area);
+
+    // use app.selected_item to change
+    // the block to one with highlight
+    for (i, active) in selected_item.actions_active.iter().enumerate() {
+        let desc = active.description();
+        let block = action_block.to_owned().border_style(
+            if app.selected_table == Table::Actions
+                && app.selection_mode == SelectionMode::Item
+                && app.selection_index == i
+            {
+                HIGHLIGHT_STYLE
+            } else {
+                DEFAULT_STYLE
+            },
+        );
+        let action = Paragraph::new(desc.as_str())
+            .block(block)
+            .wrap(Wrap { trim: true })
+            .alignment(Alignment::Left);
+        f.render_widget(action, action_blocks[i]);
     }
 
-    f.render_widget(paragraph, area);
+    let max_len = action_blocks.len() - 1;
+    for (i, passive) in selected_item.actions_passive.iter().enumerate() {
+        let desc = passive.description();
+        let action = Paragraph::new(desc.as_str())
+            .block(action_block.clone().title(passive.name()))
+            .wrap(Wrap { trim: true })
+            .alignment(Alignment::Left);
+        f.render_widget(action, action_blocks[max_len - i]);
+    }
 }
 
 fn draw_resources(f: &mut Frame, app: &mut App, area: Rect) {
@@ -231,7 +261,11 @@ fn draw_resources(f: &mut Frame, app: &mut App, area: Rect) {
             let lines = vec![Line::from(format!(
                 "{res_name}{:>1$.2}",
                 res_amount,
-                area.width as usize - char_count - 5
+                (area.width as usize)
+                    .checked_sub(char_count)
+                    .unwrap_or(0)
+                    .checked_sub(5)
+                    .unwrap_or(0)
             ))];
             ListItem::new(lines)
         })
@@ -239,49 +273,30 @@ fn draw_resources(f: &mut Frame, app: &mut App, area: Rect) {
 
     let resources = List::new(resources)
         .block(block)
-        .highlight_style(
-            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Resources {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
+        .highlight_style(HIGHLIGHT_STYLE)
         .highlight_symbol("> ");
-    f.render_stateful_widget(resources, area, &mut app.resource_table.state);
-}
 
-fn draw_industries(f: &mut Frame, app: &mut App, area: Rect) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(
-            if app.selected_table == Table::Industry && app.selection_mode == SelectionMode::Table {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
-        .title(" Industries ")
-        .title_alignment(Alignment::Center)
-        .border_type(BorderType::Plain);
+    let selected_item_name = app.selected_item.clone();
+    if let Some(item) = app.game_state.items.get(&selected_item_name) {
+        if item.category == ItemCategory::Resource {
+            let index = &app
+                .resource_table
+                .items
+                .iter()
+                .position(|s| *s == item.name);
 
-    let industries: Vec<ListItem> = app
-        .industry_table
-        .items
-        .iter()
-        .map(|i| ListItem::new(vec![Line::from(Span::raw(i.clone()))]))
-        .collect();
+            if let Some(index) = index {
+                f.render_stateful_widget(
+                    resources,
+                    area,
+                    &mut ListState::default().with_selected(Some(*index)),
+                );
+                return;
+            };
+        }
+    };
 
-    let industries = List::new(industries)
-        .block(block)
-        .highlight_style(
-            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Industry {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
-        .highlight_symbol("> ");
-    f.render_stateful_widget(industries, area, &mut app.industry_table.state);
+    f.render_widget(resources, area);
 }
 
 fn draw_buildings(f: &mut Frame, app: &mut App, area: Rect) {
@@ -309,7 +324,11 @@ fn draw_buildings(f: &mut Frame, app: &mut App, area: Rect) {
             let lines = vec![Line::from(format!(
                 "{build_name}{:>1$.2}",
                 build_amount,
-                area.width as usize - char_count - 5
+                (area.width as usize)
+                    .checked_sub(char_count)
+                    .unwrap_or(0)
+                    .checked_sub(5)
+                    .unwrap_or(0)
             ))];
             ListItem::new(lines)
         })
@@ -317,48 +336,47 @@ fn draw_buildings(f: &mut Frame, app: &mut App, area: Rect) {
 
     let buildings = List::new(buildings)
         .block(block)
-        .highlight_style(
-            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Buildings {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
+        .highlight_style(HIGHLIGHT_STYLE)
         .highlight_symbol("> ");
-    f.render_stateful_widget(buildings, area, &mut app.building_table.state);
+
+    let selected_item_name = app.selected_item.clone();
+    if let Some(item) = app.game_state.items.get(&selected_item_name) {
+        if item.category == ItemCategory::Building {
+            let index = &app
+                .building_table
+                .items
+                .iter()
+                .position(|s| *s == item.name);
+
+            if let Some(index) = index {
+                f.render_stateful_widget(
+                    buildings,
+                    area,
+                    &mut ListState::default().with_selected(Some(*index)),
+                );
+                return;
+            };
+        }
+    };
+
+    f.render_widget(buildings, area);
 }
 
-fn draw_actions(f: &mut Frame, app: &mut App, area: Rect) {
+fn draw_history(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(
-            if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Table {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
-        .title(format!(" Actions ({}) ", app.activation_amount))
+        .border_style(DEFAULT_STYLE)
+        .title(" History ")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
 
-    let actions: Vec<ListItem> = app
-        .action_table
-        .items
-        .iter()
-        .map(|i| ListItem::new(vec![Line::from(Span::raw(i.clone()))]))
-        .collect();
+    let history_items: Vec<ListItem> = vec![
+        ListItem::new("Test content meant to test things that are kinda long just to make sure there is no wrapping and that it doesn't look too weird"),
+        ListItem::new("An additional list item of a more standard length"),
+        ListItem::new("Now we want to make sure that too many list items isnt weird"),
+        ListItem::new("This should be a good number of items")
+    ];
 
-    let actions = List::new(actions)
-        .block(block)
-        .style(DEFAULT_STYLE)
-        .highlight_style(
-            if app.selection_mode == SelectionMode::Item && app.selected_table == Table::Actions {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
-        .highlight_symbol("> ");
-    f.render_stateful_widget(actions, area, &mut app.action_table.state);
+    let history = List::new(history_items).block(block);
+    f.render_widget(history, area)
 }
