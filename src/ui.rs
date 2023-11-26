@@ -369,8 +369,7 @@ fn draw_history(f: &mut Frame, app: &App, area: Rect) {
     let history_items = app
         .history
         .iter()
-        .rev()
-        .map(|s| ListItem::new(s.as_str()))
+        .map(|h| ListItem::new(format!("{} x{}", h.description, h.amount)))
         .collect::<Vec<ListItem>>();
 
     let history = List::new(history_items).block(block);

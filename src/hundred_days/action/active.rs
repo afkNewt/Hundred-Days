@@ -70,26 +70,25 @@ impl Action for Active {
                 return format!("Sold {amount} {item_name} for {}", sell_price * amount);
             }
             Active::Construct { build_cost } => {
-                let mut cost_string = String::new();
-                for (name, cost) in build_cost {
-                    game.items.get_mut(name).unwrap().amount -= cost * amount;
-                    cost_string = format!("{cost_string}\n{name}: {cost}");
-                }
-
                 game.items.get_mut(&item_name).unwrap().amount += amount;
-
-                return format!("Constructed {amount} {item_name} for:{cost_string}");
+                return format!(
+                    "Constructed {amount} {item_name} for: {{ {}}}",
+                    build_cost
+                        .iter()
+                        .map(|(s, i)| { format!("{s}: {i} ") })
+                        .collect::<String>()
+                );
             }
             Active::Deconstruct { item_gain } => {
-                let mut gain_string = String::new();
-                for (name, gain) in item_gain {
-                    game.items.get_mut(name).unwrap().amount += gain * amount;
-                    gain_string = format!("{gain_string}\n{name}: {gain}");
-                }
-
                 game.items.get_mut(&item_name).unwrap().amount -= amount;
 
-                return format!("Deconstructed {amount} {item_name} for:{gain_string}");
+                return format!(
+                    "Deconstructed {amount} {item_name} for: {{ {}}}",
+                    item_gain
+                        .iter()
+                        .map(|(s, i)| { format!("{s}: {i} ") })
+                        .collect::<String>()
+                );
             }
         }
     }

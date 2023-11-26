@@ -14,6 +14,21 @@ impl Default for List {
     }
 }
 
+#[derive(PartialEq, Clone)]
+pub struct HistoryItem {
+    pub description: String,
+    pub amount: i32,
+}
+
+impl HistoryItem {
+    pub fn new(description: String, amount: i32) -> Self {
+        Self {
+            description,
+            amount,
+        }
+    }
+}
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum Table {
     Resources,
@@ -35,7 +50,8 @@ pub struct App {
 
     pub selection_index: usize,
 
-    pub history: Vec<String>,
+    pub history_limit: usize,
+    pub history: Vec<HistoryItem>,
 
     // number of times to call an action
     // when an action is activated
@@ -66,6 +82,7 @@ impl App {
             selected_table: Table::Resources,
             selected_item: first_item.unwrap_or_default(),
             game_state: game,
+            history_limit: 3,
             history: Vec::new(),
         };
 
@@ -80,6 +97,24 @@ impl App {
         };
 
         return Some(item.actions_active[self.selection_index].clone());
+    }
+
+    fn add_history_item(&mut self, history_item: HistoryItem) {
+        let first_item = self.history.get(0);
+        let Some(first_item) = first_item else {
+            self.history.push(history_item);
+            return;
+        };
+
+        if first_item.description == history_item.description {
+            self.history[0].amount += history_item.amount;
+        } else {
+            self.history.insert(0, history_item);
+        }
+
+        while self.history.len() > self.history_limit {
+            self.history.pop();
+        }
     }
 
     fn update_resources_list(&mut self) {
@@ -176,14 +211,16 @@ impl App {
 
     pub fn call_selected_action(&mut self) {
         let Some(action) = self.selected_action() else {
-            self.history.push("Could not find action".to_string());
+            self.add_history_item(HistoryItem::new("Could not find action".to_string(), 1));
             return;
         };
 
-        self.history.push(action.activate(
+        let action_desc = action.activate(
             self.selected_item.clone(),
             &mut self.game_state,
             self.activation_amount,
-        ));
+        );
+
+        self.add_history_item(HistoryItem::new(action_desc, self.activation_amount));
     }
 }
