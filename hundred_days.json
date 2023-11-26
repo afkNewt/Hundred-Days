@@ -1,20 +1,11 @@
 {
     "day": 100,
     "currency": 100,
-    "industries": [
-      "None",
-      "Mining",
-      "Logging"
-    ],
     "items": {
       "Wood": {
         "name": "Wood",
         "amount": 100,
         "category": "Resource",
-        "industries": [
-          "None",
-          "Logging"
-        ],
         "actions_active": [
           {
             "Buy": {
@@ -33,10 +24,6 @@
         "name": "Stone",
         "amount": 100,
         "category": "Resource",
-        "industries": [
-          "None",
-          "Mining"
-        ],
         "actions_active": [
           {
             "Buy": {
@@ -55,10 +42,6 @@
         "name": "Gems",
         "amount": 0,
         "category": "Resource",
-        "industries": [
-          "None",
-          "Mining"
-        ],
         "actions_active": [
           {
             "Buy": {
@@ -77,10 +60,6 @@
         "name": "Sawmill",
         "amount": 1,
         "category": "Building",
-        "industries": [
-          "None",
-          "Logging"
-        ],
         "actions_active": [
           {
             "Construct": {
@@ -113,10 +92,6 @@
         "name": "Mine",
         "amount": 1,
         "category": "Building",
-        "industries": [
-          "None",
-          "Mining"
-        ],
         "actions_active": [
           {
             "Construct": {

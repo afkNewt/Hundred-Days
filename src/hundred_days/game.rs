@@ -11,7 +11,6 @@ use super::{
 pub struct GameState {
     pub day: i32,
     pub currency: i32,
-    pub industries: Vec<String>,
     pub items: HashMap<String, Item>,
 }
 
@@ -29,11 +28,11 @@ impl GameState {
     pub fn pass_day(&mut self, amount: i32) {
         self.day -= amount;
 
-        for (item_name, item) in self.items.clone() {
-            for action in item.actions_passive {
-                action.activate(item_name.clone(), self, amount);
-            }
-        }
+        self.clone().items.values().for_each(|i| {
+            i.actions_passive.iter().for_each(|p| {
+                p.activate(i.name.clone(), self, amount);
+            })
+        });
     }
 
     pub fn net_worth(&self) -> i32 {

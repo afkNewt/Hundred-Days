@@ -71,6 +71,11 @@ impl Action for Active {
             }
             Active::Construct { build_cost } => {
                 game.items.get_mut(&item_name).unwrap().amount += amount;
+
+                for (name, cost) in build_cost {
+                    game.items.get_mut(name).unwrap().amount -= cost * amount;
+                }
+
                 return format!(
                     "Constructed {amount} {item_name} for: {{ {}}}",
                     build_cost
@@ -81,6 +86,10 @@ impl Action for Active {
             }
             Active::Deconstruct { item_gain } => {
                 game.items.get_mut(&item_name).unwrap().amount -= amount;
+
+                for (name, gain) in item_gain {
+                    game.items.get_mut(name).unwrap().amount += gain * amount;
+                }
 
                 return format!(
                     "Deconstructed {amount} {item_name} for: {{ {}}}",

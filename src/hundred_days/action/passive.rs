@@ -56,22 +56,30 @@ impl Action for Passive {
 
         match self {
             Passive::Produce { item_production } => {
-                let mut production_string = String::new();
                 for (name, production) in item_production {
                     game.items.get_mut(name).unwrap().amount += production * amount;
-                    production_string = format!("{production_string}\n{name}: {production}");
                 }
 
-                return format!("Produced:{production_string}");
+                return format!(
+                    "Produced {{ {}}}",
+                    item_production
+                        .iter()
+                        .map(|(s, i)| { format!("{s}: {i} ") })
+                        .collect::<String>()
+                );
             }
             Passive::Reduce { item_reduction } => {
-                let mut reduction_string = String::new();
                 for (name, reduction) in item_reduction {
                     game.items.get_mut(name).unwrap().amount -= reduction * amount;
-                    reduction_string = format!("{reduction_string}\n{name}: {reduction}");
                 }
 
-                return format!("Reduced:{reduction_string}");
+                return format!(
+                    "Reduced {{ {}}}",
+                    item_reduction
+                        .iter()
+                        .map(|(s, i)| { format!("{s}: {i} ") })
+                        .collect::<String>()
+                );
             }
         }
     }
