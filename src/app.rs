@@ -22,9 +22,11 @@ pub enum Table {
 }
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum SelectionMode {
-    Table,
-    Item,
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 pub struct App {
@@ -43,7 +45,6 @@ pub struct App {
     pub selected_table: Table,
     // last selected item
     pub selected_item: String,
-    pub selection_mode: SelectionMode,
 
     pub game_state: GameState,
 }
@@ -64,7 +65,6 @@ impl App {
             activation_amount: 1,
             selected_table: Table::Resources,
             selected_item: first_item.unwrap_or_default(),
-            selection_mode: SelectionMode::Item,
             game_state: game,
             history: Vec::new(),
         };
@@ -114,36 +114,46 @@ impl App {
         }
     }
 
-    pub fn navigate(&mut self, up: bool) {
-        if self.selection_mode == SelectionMode::Table {
-            return;
-        }
+    pub fn navigate(&mut self, direction: Direction) {
+        let mut selection_index_wrapping_add = |amount: i32| {
+            let max = match self.selected_table {
+                Table::Resources => self.resource_table.items.len(),
+                Table::Buildings => self.building_table.items.len(),
+                Table::Actions => {
+                    let selected_item = self.selected_item.clone();
+                    let Some(item) = self.game_state.items.get(&selected_item) else {
+                        return;
+                    };
 
-        let max = match self.selected_table {
-            Table::Resources => self.resource_table.items.len(),
-            Table::Buildings => self.building_table.items.len(),
-            Table::Actions => {
-                let selected_item = self.selected_item.clone();
-                let Some(item) = self.game_state.items.get(&selected_item) else {
-                    return;
-                };
+                    item.actions_active.len()
+                }
+            };
 
-                item.actions_active.len()
-            }
+            let added = self.selection_index as i32 + amount;
+            self.selection_index = if (0..max).contains(&(added as usize)) {
+                added as usize
+            } else {
+                if added > 0 {
+                    0
+                } else {
+                    max - 1
+                }
+            };
         };
 
-        if up {
-            if self.selection_index + 1 >= max {
-                self.selection_index = 0;
-            } else {
-                self.selection_index += 1;
-            }
-        } else {
-            if self.selection_index.checked_sub(1) == None {
-                self.selection_index = max - 1;
-            } else {
-                self.selection_index -= 1;
-            }
+        match direction {
+            Direction::Up => selection_index_wrapping_add(-1),
+            Direction::Down => selection_index_wrapping_add(1),
+            Direction::Left => match self.selected_table {
+                Table::Actions => self.change_tab(Table::Buildings),
+                Table::Buildings => self.change_tab(Table::Resources),
+                Table::Resources => self.change_tab(Table::Actions),
+            },
+            Direction::Right => match self.selected_table {
+                Table::Buildings => self.change_tab(Table::Actions),
+                Table::Resources => self.change_tab(Table::Buildings),
+                Table::Actions => self.change_tab(Table::Resources),
+            },
         }
 
         let Some(selected_item_name) = self.currently_selected_item_name() else {
@@ -160,17 +170,6 @@ impl App {
         if self.selected_table == Table::Resources || self.selected_table == Table::Buildings {
             if let Some(selected_item_name) = self.currently_selected_item_name() {
                 self.selected_item = selected_item_name;
-            }
-        }
-    }
-
-    pub fn alternate_selection_mode(&mut self) {
-        match self.selection_mode {
-            SelectionMode::Table => {
-                self.selection_mode = SelectionMode::Item;
-            }
-            SelectionMode::Item => {
-                self.selection_mode = SelectionMode::Table;
             }
         }
     }

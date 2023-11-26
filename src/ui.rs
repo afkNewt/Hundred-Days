@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::hundred_days::item::ItemCategory;
 use crate::{
-    app::{App, SelectionMode, Table},
+    app::{App, Table},
     hundred_days::action::Action,
 };
 
@@ -156,13 +156,11 @@ fn draw_cash(f: &mut Frame, app: &App, area: Rect) {
 
 fn draw_actions(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
-        .border_style(
-            if app.selected_table == Table::Actions && app.selection_mode == SelectionMode::Table {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
+        .border_style(if app.selected_table == Table::Actions {
+            HIGHLIGHT_STYLE
+        } else {
+            DEFAULT_STYLE
+        })
         .borders(Borders::ALL)
         .title(" Actions ")
         .title_alignment(Alignment::Center)
@@ -209,10 +207,7 @@ fn draw_actions(f: &mut Frame, app: &App, area: Rect) {
     for (i, active) in selected_item.actions_active.iter().enumerate() {
         let desc = active.description();
         let block = action_block.to_owned().border_style(
-            if app.selected_table == Table::Actions
-                && app.selection_mode == SelectionMode::Item
-                && app.selection_index == i
-            {
+            if app.selected_table == Table::Actions && app.selection_index == i {
                 HIGHLIGHT_STYLE
             } else {
                 DEFAULT_STYLE
@@ -239,14 +234,11 @@ fn draw_actions(f: &mut Frame, app: &App, area: Rect) {
 fn draw_resources(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(
-            if app.selected_table == Table::Resources && app.selection_mode == SelectionMode::Table
-            {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
+        .border_style(if app.selected_table == Table::Resources {
+            HIGHLIGHT_STYLE
+        } else {
+            DEFAULT_STYLE
+        })
         .title(" Resources ")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
@@ -302,14 +294,11 @@ fn draw_resources(f: &mut Frame, app: &mut App, area: Rect) {
 fn draw_buildings(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(
-            if app.selected_table == Table::Buildings && app.selection_mode == SelectionMode::Table
-            {
-                HIGHLIGHT_STYLE
-            } else {
-                DEFAULT_STYLE
-            },
-        )
+        .border_style(if app.selected_table == Table::Buildings {
+            HIGHLIGHT_STYLE
+        } else {
+            DEFAULT_STYLE
+        })
         .title(" Buildings ")
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
@@ -370,12 +359,19 @@ fn draw_history(f: &mut Frame, app: &App, area: Rect) {
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Plain);
 
-    let history_items: Vec<ListItem> = vec![
-        ListItem::new("Test content meant to test things that are kinda long just to make sure there is no wrapping and that it doesn't look too weird"),
-        ListItem::new("An additional list item of a more standard length"),
-        ListItem::new("Now we want to make sure that too many list items isnt weird"),
-        ListItem::new("This should be a good number of items")
-    ];
+    // let history_items: Vec<ListItem> = vec![
+    //     ListItem::new("Test content meant to test things that are kinda long just to make sure there is no wrapping and that it doesn't look too weird"),
+    //     ListItem::new("An additional list item of a more standard length"),
+    //     ListItem::new("Now we want to make sure that too many list items isnt weird"),
+    //     ListItem::new("This should be a good number of items")
+    // ];
+
+    let history_items = app
+        .history
+        .iter()
+        .rev()
+        .map(|s| ListItem::new(s.as_str()))
+        .collect::<Vec<ListItem>>();
 
     let history = List::new(history_items).block(block);
     f.render_widget(history, area)

@@ -1,5 +1,5 @@
 use crate::{
-    app::{App, SelectionMode, Table},
+    app::{App, Table},
     hundred_days::item::ItemCategory,
     ui::draw,
 };
@@ -21,7 +21,6 @@ enum Inputs {
     Up,
     Down,
     Back,
-    SwapSelection,
     IncreaseActionActivation,
     DecreaseActionActivation,
     ActivateOrGoToActions,
@@ -70,7 +69,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Up | KeyCode::Char('w') => Some(Inputs::Up),
                 KeyCode::Down | KeyCode::Char('s') => Some(Inputs::Down),
                 KeyCode::Backspace => Some(Inputs::Back),
-                KeyCode::Char(' ') => Some(Inputs::SwapSelection),
                 KeyCode::Tab => Some(Inputs::IncreaseActionActivation),
                 KeyCode::BackTab => Some(Inputs::DecreaseActionActivation),
                 KeyCode::Enter => Some(Inputs::ActivateOrGoToActions),
@@ -92,39 +90,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 
         match action {
             Inputs::Exit => return Ok(()),
-            Inputs::Left => {
-                if app.selection_mode == SelectionMode::Table {
-                    match app.selected_table {
-                        Table::Actions => app.change_tab(Table::Buildings),
-                        Table::Buildings => app.change_tab(Table::Resources),
-                        _ => {}
-                    }
-                }
-            }
-            Inputs::Right => {
-                if app.selection_mode == SelectionMode::Table {
-                    match app.selected_table {
-                        Table::Buildings => app.change_tab(Table::Actions),
-                        Table::Resources => app.change_tab(Table::Buildings),
-                        _ => {}
-                    }
-                }
-            }
-            Inputs::Up => {
-                if app.selection_mode == SelectionMode::Item {
-                    app.navigate(false);
-                }
-            }
-            Inputs::Down => {
-                if app.selection_mode == SelectionMode::Item {
-                    app.navigate(true);
-                }
-            }
+            Inputs::Left => app.navigate(crate::app::Direction::Left),
+            Inputs::Right => app.navigate(crate::app::Direction::Right),
+            Inputs::Up => app.navigate(crate::app::Direction::Up),
+            Inputs::Down => app.navigate(crate::app::Direction::Down),
             Inputs::Back => {
-                if app.selection_mode == SelectionMode::Table {
-                    app.alternate_selection_mode();
-                }
-
                 if let Some(item) = app.game_state.items.get(&app.selected_item) {
                     match item.category {
                         ItemCategory::Resource => app.change_tab(Table::Resources),
@@ -132,7 +102,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                 }
             }
-            Inputs::SwapSelection => app.alternate_selection_mode(),
             Inputs::IncreaseActionActivation => match app.activation_amount {
                 1 => app.activation_amount = 10,
                 10 => app.activation_amount = 100,
@@ -148,10 +117,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
             Inputs::ActivateOrGoToActions => {
                 if app.selected_table != Table::Actions {
                     app.change_tab(Table::Actions);
-
-                    if app.selection_mode == SelectionMode::Table {
-                        app.alternate_selection_mode();
-                    }
                 } else {
                     app.call_selected_action();
                 }
